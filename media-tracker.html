@@ -115,13 +115,34 @@ async function cloudLoadAll(){
 }
 
 // Only sync from cloud if localStorage is empty (first load on new device)
-window.addEventListener('load',()=>{
-  setTimeout(()=>{
-    if(!localStorage.getItem('ft_films')){
-      cloudLoadAll();
-    }
-  },2000);
-});
+// This runs before iframes are created via loadFrames()
+async function initApp(){
+  if(!localStorage.getItem('ft_films')){
+    try{
+      const resp=await fetch(SYNC_API+'/load?userId='+USER_ID);
+      if(resp.ok){
+        const data=await resp.json();
+        if(Object.keys(data).length>0){
+          const assembled={};
+          const chunkCountKeys=Object.keys(data).filter(k=>k.endsWith('__chunks'));
+          const chunkDataKeys=Object.keys(data).filter(k=>k.includes('__chunk_'));
+          const regularKeys=Object.keys(data).filter(k=>!k.includes('__chunk'));
+          regularKeys.forEach(key=>{const val=data[key];assembled[key]=typeof val==='string'?val:JSON.stringify(val)});
+          chunkCountKeys.forEach(ck=>{
+            const baseKey=ck.replace('__chunks','');
+            const count=typeof data[ck]==='string'?parseInt(data[ck]):data[ck];
+            let full='';
+            for(let i=0;i<count;i++){const chunkVal=data[baseKey+'__chunk_'+i];if(chunkVal)full+=typeof chunkVal==='string'?chunkVal:JSON.stringify(chunkVal)}
+            if(full)assembled[baseKey]=full;
+          });
+          Object.entries(assembled).forEach(([key,val])=>{localStorage.setItem(key,val)});
+        }
+      }
+    }catch(e){}
+  }
+  loadFrames();
+}
+initApp();
 
 async function syncToCloud(){
   let count=0;
@@ -4385,10 +4406,12 @@ function init(){load();runMigrations();updateMaxId();mergeSeedData();save();popu
 init();
 <\/script></body></html>`;
 
+function loadFrames(){
 document.getElementById('filmFrame').srcdoc = FILM_HTML;
 document.getElementById('gameFrame').srcdoc = GAME_HTML;
 document.getElementById('bookFrame').srcdoc = BOOK_HTML;
 document.getElementById('boardFrame').srcdoc = BOARD_HTML;
+}
 </script>
 </body>
 </html>
