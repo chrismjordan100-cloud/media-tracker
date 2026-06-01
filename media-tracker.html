@@ -71,28 +71,38 @@ async function cloudLoadAll(){
     if(resp.ok){
       const data=await resp.json();
       if(Object.keys(data).length===0)return;
-      // Cloud always wins — overwrite local
+      // Cloud always wins — overwrite local in all iframes
       const frames=['filmFrame','gameFrame','bookFrame','boardFrame'];
-      frames.forEach(fId=>{
+      for(const fId of frames){
         const frame=document.getElementById(fId);
+        // Wait for iframe to be ready
+        await new Promise(r=>{
+          if(frame.contentWindow&&frame.contentWindow.localStorage){r()}
+          else{frame.onload=()=>r()}
+        });
         try{
           const ls=frame.contentWindow.localStorage;
           Object.entries(data).forEach(([key,val])=>{
             ls.setItem(key,JSON.stringify(val));
           });
         }catch(e){}
-      });
-      // Reload iframes to pick up new data
-      frames.forEach(fId=>{
-        const frame=document.getElementById(fId);
-        frame.srcdoc=frame.srcdoc;
-      });
+      }
+      // Force full page reload to pick up new data
+      window.location.reload();
     }
   }catch(e){console.error('Cloud load error:',e)}
 }
 
-// Sync on page load (after iframes load)
-window.addEventListener('load',()=>{setTimeout(cloudLoadAll,3000)});
+// Only sync from cloud if localStorage is empty (first load on new device)
+window.addEventListener('load',()=>{
+  setTimeout(()=>{
+    try{
+      const frame=document.getElementById('filmFrame');
+      const ls=frame.contentWindow.localStorage;
+      if(!ls.getItem('ft_films')){cloudLoadAll()}
+    }catch(e){cloudLoadAll()}
+  },2000);
+});
 
 async function syncToCloud(){
   const frames=['filmFrame','gameFrame','bookFrame','boardFrame'];
@@ -178,7 +188,7 @@ body{background:#0f0f0f;color:#eee;font-family:-apple-system,BlinkMacSystemFont,
 .item-count{color:#c8a400;font-weight:bold;margin-left:auto}
 </style>
 <style>
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;padding:12px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;padding:12px}@media(max-width:600px){.grid{grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:6px;padding:6px}.tile-title{font-size:9px}.tile-year{font-size:8px}.tile-genre{font-size:7px}.section-tiles{grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:6px}}
 .section-header{grid-column:1/-1;font-size:14px;font-weight:bold;color:#c8a400;padding:8px 0 4px;border-bottom:1px solid #2a2a2a;margin-top:8px}
 .section-tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;grid-column:1/-1}
 .section-tiles.hidden{display:none}
@@ -1625,7 +1635,7 @@ body{background:#0f0f0f;color:#eee;font-family:-apple-system,BlinkMacSystemFont,
 .stats-bar{background:#1a1a1a;padding:6px 12px;font-size:11px;color:#888;display:flex;flex-wrap:wrap;gap:12px;border-bottom:1px solid #222}
 .stats-bar span{white-space:nowrap}
 .item-count{color:#2ecc71;font-weight:bold;margin-left:auto}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;padding:12px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;padding:12px}@media(max-width:600px){.grid{grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:6px;padding:6px}.tile-title{font-size:9px}.tile-year{font-size:8px}.tile-genre{font-size:7px}.section-tiles{grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:6px}}
 .section-header{grid-column:1/-1;font-size:14px;font-weight:bold;color:#2ecc71;padding:8px 0 4px;border-bottom:1px solid #2a2a2a;margin-top:8px}
 .section-tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;grid-column:1/-1}
 .section-tiles.hidden{display:none}
@@ -2894,7 +2904,7 @@ body{background:#0f0f0f;color:#eee;font-family:-apple-system,BlinkMacSystemFont,
 .toolbar input[type=text]{width:160px}
 .stats-bar{background:#1a1a1a;padding:6px 12px;font-size:11px;color:#888;display:flex;flex-wrap:wrap;gap:12px;border-bottom:1px solid #222}
 .item-count{color:#e67e22;font-weight:bold;margin-left:auto}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;padding:12px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;padding:12px}@media(max-width:600px){.grid{grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:6px;padding:6px}.tile-title{font-size:9px}.tile-year{font-size:8px}.tile-genre{font-size:7px}.section-tiles{grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:6px}}
 .section-header{grid-column:1/-1;font-size:14px;font-weight:bold;color:#e67e22;padding:8px 0 4px;border-bottom:1px solid #2a2a2a;margin-top:8px;cursor:pointer;user-select:none}
 .section-header .collapse-icon{font-size:10px;transition:transform .2s;display:inline-block}
 .section-header.collapsed .collapse-icon{transform:rotate(-90deg)}
@@ -3780,7 +3790,7 @@ body{background:#0f0f0f;color:#eee;font-family:-apple-system,BlinkMacSystemFont,
 .toolbar input[type=text]{width:160px}
 .stats-bar{background:#1a1a1a;padding:6px 12px;font-size:11px;color:#888;display:flex;flex-wrap:wrap;gap:12px;border-bottom:1px solid #222}
 .item-count{color:#9b59b6;font-weight:bold;margin-left:auto}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;padding:12px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;padding:12px}@media(max-width:600px){.grid{grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:6px;padding:6px}.tile-title{font-size:9px}.tile-year{font-size:8px}.tile-genre{font-size:7px}.section-tiles{grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:6px}}
 .section-header{grid-column:1/-1;font-size:14px;font-weight:bold;color:#9b59b6;padding:8px 0 4px;border-bottom:1px solid #2a2a2a;margin-top:8px;cursor:pointer;user-select:none}
 .section-header .collapse-icon{font-size:10px;transition:transform .2s;display:inline-block}
 .section-header.collapsed .collapse-icon{transform:rotate(-90deg)}
