@@ -62,7 +62,20 @@ else{dT.className='tab-btn active-board';dF.classList.remove('hidden')}
 // Cloud sync functions
 async function cloudSave(dataKey, data){
   try{
-    await fetch(SYNC_API+'/save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:USER_ID,dataKey,data})});
+    const str=JSON.stringify(data);
+    // DynamoDB has 400KB limit - split large items into chunks
+    const CHUNK_SIZE=350000;
+    if(str.length>CHUNK_SIZE){
+      const chunks=Math.ceil(str.length/CHUNK_SIZE);
+      for(let i=0;i<chunks;i++){
+        const chunk=str.substring(i*CHUNK_SIZE,(i+1)*CHUNK_SIZE);
+        await fetch(SYNC_API+'/save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:USER_ID,dataKey:dataKey+'__chunk_'+i,data:chunk})});
+      }
+      // Save chunk count
+      await fetch(SYNC_API+'/save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:USER_ID,dataKey:dataKey+'__chunks',data:chunks})});
+    }else{
+      await fetch(SYNC_API+'/save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:USER_ID,dataKey,data})});
+    }
   }catch(e){console.error('Cloud save error:',e)}
 }
 
@@ -72,11 +85,26 @@ async function cloudLoadAll(){
     if(resp.ok){
       const data=await resp.json();
       if(Object.keys(data).length===0){alert('No cloud data found.');return}
-      // Write directly to localStorage
-      Object.entries(data).forEach(([key,val])=>{
-        localStorage.setItem(key,JSON.stringify(val));
+      // Reassemble chunked items
+      const assembled={};
+      const chunkKeys=Object.keys(data).filter(k=>k.endsWith('__chunks'));
+      const regularKeys=Object.keys(data).filter(k=>!k.includes('__chunk'));
+      // Regular items
+      regularKeys.forEach(key=>{assembled[key]=JSON.stringify(data[key])});
+      // Chunked items
+      chunkKeys.forEach(ck=>{
+        const baseKey=ck.replace('__chunks','');
+        const count=data[ck];
+        let full='';
+        for(let i=0;i<count;i++){
+          const chunkData=data[baseKey+'__chunk_'+i];
+          if(chunkData)full+=chunkData;
+        }
+        if(full)assembled[baseKey]=full;
       });
-      alert('Pulled '+Object.keys(data).length+' items from cloud. Reloading...');
+      // Write to localStorage
+      Object.entries(assembled).forEach(([key,val])=>{localStorage.setItem(key,val)});
+      alert('Pulled '+Object.keys(assembled).length+' items from cloud. Reloading...');
       window.location.reload();
     }else{alert('Cloud load failed: '+resp.status)}
   }catch(e){alert('Cloud error: '+e.message)}

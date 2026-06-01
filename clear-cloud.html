@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html><body>
+<h2>Clear Cloud Data</h2>
+<button onclick="clearCloud()">Clear All Cloud Data</button>
+<button onclick="rePush()">Re-Push from localStorage</button>
+<pre id="log"></pre>
+<script>
+const API='https://ditw97qgs2.execute-api.eu-north-1.amazonaws.com';
+const USER='chris';
+function log(msg){document.getElementById('log').textContent+=msg+'\n'}
+
+async function clearCloud(){
+  log('Loading current cloud data...');
+  const resp=await fetch(API+'/load?userId='+USER);
+  const data=await resp.json();
+  log('Found '+Object.keys(data).length+' items. Overwriting with empty...');
+  for(const key of Object.keys(data)){
+    await fetch(API+'/save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:USER,dataKey:key,data:null})});
+    log('Cleared: '+key);
+  }
+  log('Done! Cloud is empty.');
+}
+
+async function rePush(){
+  log('Pushing localStorage to cloud...');
+  let count=0;
+  for(let i=0;i<localStorage.length;i++){
+    const key=localStorage.key(i);
+    const val=localStorage.getItem(key);
+    try{
+      await fetch(API+'/save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:USER,dataKey:key,data:JSON.parse(val)})});
+      log('Pushed: '+key+' ('+val.length+' chars)');
+      count++;
+    }catch(e){log('Error on '+key+': '+e.message)}
+  }
+  log('Done! Pushed '+count+' items.');
+}
+</script>
+</body></html>
