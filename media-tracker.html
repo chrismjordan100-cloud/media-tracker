@@ -36,6 +36,7 @@ body{background:#111;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',san
 <div class="tab-divider"></div>
 <button class="tab-btn" onclick="exportData()" title="Export all data as JSON" style="font-size:10px;padding:6px 10px;color:#555">⬇</button>
 <button class="tab-btn" onclick="document.getElementById('importFile').click()" title="Import data from JSON" style="font-size:10px;padding:6px 10px;color:#555">⬆</button>
+<button class="tab-btn" onclick="syncToCloud()" title="Sync data to cloud" style="font-size:10px;padding:6px 10px;color:#555">☁</button>
 <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
 </div>
 <iframe id="filmFrame" class="tracker-frame"></iframe>
@@ -43,6 +44,9 @@ body{background:#111;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',san
 <iframe id="bookFrame" class="tracker-frame hidden"></iframe>
 <iframe id="boardFrame" class="tracker-frame hidden"></iframe>
 <script>
+const SYNC_API = 'https://ditw97qgs2.execute-api.eu-north-1.amazonaws.com';
+const USER_ID = 'chris';
+
 function switchTab(tab){
 const fT=document.getElementById('filmTab'),gT=document.getElementById('gameTab'),bT=document.getElementById('bookTab'),dT=document.getElementById('boardTab');
 const fF=document.getElementById('filmFrame'),gF=document.getElementById('gameFrame'),bF=document.getElementById('bookFrame'),dF=document.getElementById('boardFrame');
@@ -52,6 +56,54 @@ if(tab==='film'){fT.className='tab-btn active-film';fF.classList.remove('hidden'
 else if(tab==='game'){gT.className='tab-btn active-game';gF.classList.remove('hidden')}
 else if(tab==='book'){bT.className='tab-btn active-book';bF.classList.remove('hidden')}
 else{dT.className='tab-btn active-board';dF.classList.remove('hidden')}
+}
+
+// Cloud sync functions
+async function cloudSave(dataKey, data){
+  try{
+    await fetch(SYNC_API+'/save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:USER_ID,dataKey,data})});
+  }catch(e){console.error('Cloud save error:',e)}
+}
+
+async function cloudLoadAll(){
+  try{
+    const resp=await fetch(SYNC_API+'/load?userId='+USER_ID);
+    if(resp.ok){
+      const data=await resp.json();
+      // Write cloud data into each iframe's localStorage
+      const frames=['filmFrame','gameFrame','bookFrame','boardFrame'];
+      frames.forEach(fId=>{
+        const frame=document.getElementById(fId);
+        try{
+          const ls=frame.contentWindow.localStorage;
+          Object.entries(data).forEach(([key,val])=>{
+            if(!ls.getItem(key))ls.setItem(key,JSON.stringify(val));
+          });
+        }catch(e){}
+      });
+    }
+  }catch(e){console.error('Cloud load error:',e)}
+}
+
+// Sync on page load (after iframes load)
+window.addEventListener('load',()=>{setTimeout(cloudLoadAll,3000)});
+
+async function syncToCloud(){
+  const frames=['filmFrame','gameFrame','bookFrame','boardFrame'];
+  let count=0;
+  for(const fId of frames){
+    const frame=document.getElementById(fId);
+    try{
+      const ls=frame.contentWindow.localStorage;
+      for(let i=0;i<ls.length;i++){
+        const key=ls.key(i);
+        const val=ls.getItem(key);
+        await cloudSave(key,JSON.parse(val));
+        count++;
+      }
+    }catch(e){}
+  }
+  alert('Synced '+count+' items to cloud!');
 }
 
 function exportData(){
