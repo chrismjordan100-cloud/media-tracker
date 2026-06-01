@@ -70,16 +70,22 @@ async function cloudLoadAll(){
     const resp=await fetch(SYNC_API+'/load?userId='+USER_ID);
     if(resp.ok){
       const data=await resp.json();
-      // Write cloud data into each iframe's localStorage
+      if(Object.keys(data).length===0)return;
+      // Cloud always wins — overwrite local
       const frames=['filmFrame','gameFrame','bookFrame','boardFrame'];
       frames.forEach(fId=>{
         const frame=document.getElementById(fId);
         try{
           const ls=frame.contentWindow.localStorage;
           Object.entries(data).forEach(([key,val])=>{
-            if(!ls.getItem(key))ls.setItem(key,JSON.stringify(val));
+            ls.setItem(key,JSON.stringify(val));
           });
         }catch(e){}
+      });
+      // Reload iframes to pick up new data
+      frames.forEach(fId=>{
+        const frame=document.getElementById(fId);
+        frame.srcdoc=frame.srcdoc;
       });
     }
   }catch(e){console.error('Cloud load error:',e)}
