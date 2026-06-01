@@ -1,0 +1,22 @@
+{
+  "name": "Media Tracker",
+  "short_name": "Tracker",
+  "start_url": "/media-tracker.html",
+  "display": "standalone",
+  "background_color": "#111",
+  "theme_color": "#111",
+  "icons": [
+    {
+      "src": "https://image.tmdb.org/t/p/w185/vfrQk5IPloGg1v9Rzbh2Eg3VGyM.jpg",
+      "sizes": "185x278",
+      "type": "image/jpeg",
+      "purpose": "any"
+    },
+    {
+      "src": "https://image.tmdb.org/t/p/w500/vfrQk5IPloGg1v9Rzbh2Eg3VGyM.jpg",
+      "sizes": "500x750",
+      "type": "image/jpeg",
+      "purpose": "any"
+    }
+  ]
+}
