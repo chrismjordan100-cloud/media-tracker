@@ -71,54 +71,36 @@ async function cloudLoadAll(){
     const resp=await fetch(SYNC_API+'/load?userId='+USER_ID);
     if(resp.ok){
       const data=await resp.json();
-      if(Object.keys(data).length===0)return;
-      // Cloud always wins — overwrite local in all iframes
-      const frames=['filmFrame','gameFrame','bookFrame','boardFrame'];
-      for(const fId of frames){
-        const frame=document.getElementById(fId);
-        // Wait for iframe to be ready
-        await new Promise(r=>{
-          if(frame.contentWindow&&frame.contentWindow.localStorage){r()}
-          else{frame.onload=()=>r()}
-        });
-        try{
-          const ls=frame.contentWindow.localStorage;
-          Object.entries(data).forEach(([key,val])=>{
-            ls.setItem(key,JSON.stringify(val));
-          });
-        }catch(e){}
-      }
-      // Force full page reload to pick up new data
+      if(Object.keys(data).length===0){alert('No cloud data found.');return}
+      // Write directly to localStorage
+      Object.entries(data).forEach(([key,val])=>{
+        localStorage.setItem(key,JSON.stringify(val));
+      });
+      alert('Pulled '+Object.keys(data).length+' items from cloud. Reloading...');
       window.location.reload();
-    }
-  }catch(e){console.error('Cloud load error:',e)}
+    }else{alert('Cloud load failed: '+resp.status)}
+  }catch(e){alert('Cloud error: '+e.message)}
 }
 
 // Only sync from cloud if localStorage is empty (first load on new device)
 window.addEventListener('load',()=>{
   setTimeout(()=>{
-    try{
-      const frame=document.getElementById('filmFrame');
-      const ls=frame.contentWindow.localStorage;
-      if(!ls.getItem('ft_films')){cloudLoadAll()}
-    }catch(e){cloudLoadAll()}
+    if(!localStorage.getItem('ft_films')){cloudLoadAll()}
   },2000);
 });
 
 async function syncToCloud(){
-  const frames=['filmFrame','gameFrame','bookFrame','boardFrame'];
   let count=0;
-  for(const fId of frames){
-    const frame=document.getElementById(fId);
+  for(let i=0;i<localStorage.length;i++){
+    const key=localStorage.key(i);
+    const val=localStorage.getItem(key);
     try{
-      const ls=frame.contentWindow.localStorage;
-      for(let i=0;i<ls.length;i++){
-        const key=ls.key(i);
-        const val=ls.getItem(key);
-        await cloudSave(key,JSON.parse(val));
-        count++;
-      }
-    }catch(e){}
+      await cloudSave(key,JSON.parse(val));
+      count++;
+    }catch(e){
+      await cloudSave(key,val);
+      count++;
+    }
   }
   alert('Synced '+count+' items to cloud!');
 }
