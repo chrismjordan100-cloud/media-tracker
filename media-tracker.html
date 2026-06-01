@@ -87,18 +87,22 @@ async function cloudLoadAll(){
       if(Object.keys(data).length===0){alert('No cloud data found.');return}
       // Reassemble chunked items
       const assembled={};
-      const chunkKeys=Object.keys(data).filter(k=>k.endsWith('__chunks'));
+      const chunkCountKeys=Object.keys(data).filter(k=>k.endsWith('__chunks'));
+      const chunkDataKeys=Object.keys(data).filter(k=>k.includes('__chunk_'));
       const regularKeys=Object.keys(data).filter(k=>!k.includes('__chunk'));
       // Regular items
-      regularKeys.forEach(key=>{assembled[key]=JSON.stringify(data[key])});
+      regularKeys.forEach(key=>{
+        const val=data[key];
+        assembled[key]=typeof val==='string'?val:JSON.stringify(val);
+      });
       // Chunked items
-      chunkKeys.forEach(ck=>{
+      chunkCountKeys.forEach(ck=>{
         const baseKey=ck.replace('__chunks','');
-        const count=data[ck];
+        const count=typeof data[ck]==='string'?parseInt(data[ck]):data[ck];
         let full='';
         for(let i=0;i<count;i++){
-          const chunkData=data[baseKey+'__chunk_'+i];
-          if(chunkData)full+=chunkData;
+          const chunkVal=data[baseKey+'__chunk_'+i];
+          if(chunkVal)full+=typeof chunkVal==='string'?chunkVal:JSON.stringify(chunkVal);
         }
         if(full)assembled[baseKey]=full;
       });
@@ -124,11 +128,17 @@ async function syncToCloud(){
   for(let i=0;i<localStorage.length;i++){
     const key=localStorage.key(i);
     const val=localStorage.getItem(key);
-    try{
-      await cloudSave(key,JSON.parse(val));
+    // Use raw string length to decide chunking
+    if(val.length>350000){
+      const chunks=Math.ceil(val.length/350000);
+      for(let c=0;c<chunks;c++){
+        const chunk=val.substring(c*350000,(c+1)*350000);
+        await fetch(SYNC_API+'/save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:USER_ID,dataKey:key+'__chunk_'+c,data:chunk})});
+      }
+      await fetch(SYNC_API+'/save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:USER_ID,dataKey:key+'__chunks',data:chunks})});
       count++;
-    }catch(e){
-      await cloudSave(key,val);
+    }else{
+      await fetch(SYNC_API+'/save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:USER_ID,dataKey:key,data:val})});
       count++;
     }
   }
