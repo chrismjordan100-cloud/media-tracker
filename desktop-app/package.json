@@ -1,0 +1,27 @@
+{
+  "name": "media-tracker",
+  "version": "1.0.0",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder"
+  },
+  "build": {
+    "appId": "com.media.tracker",
+    "productName": "Media Tracker",
+    "win": {
+      "icon": "alien.ico",
+      "target": "portable"
+    }
+  },
+  "description": "",
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "electron": "^42.3.0",
+    "jimp": "^1.6.1",
+    "png-to-ico": "^3.0.1"
+  }
+}
