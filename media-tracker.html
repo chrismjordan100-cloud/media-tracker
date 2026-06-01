@@ -4151,9 +4151,7 @@ document.addEventListener('click',function(e){if(e.target.classList.contains('mo
 
 // BGG XML API
 function getBggUrl(path){
-  const base='https://boardgamegeek.com/xmlapi2';
-  const url=base+path;
-  return 'https://corsproxy.io/?' + encodeURIComponent(url);
+  return 'https://ditw97qgs2.execute-api.eu-north-1.amazonaws.com/bgg?path=' + encodeURIComponent(path);
 }
 
 // Pre-mapped cover images (Wikipedia/open sources - no CORS restrictions)
