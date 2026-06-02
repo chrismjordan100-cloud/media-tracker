@@ -1082,9 +1082,9 @@ async function getSuggestions(){
   const prompt='I love these films (my all-time favourites): '+goats.join(', ')+'. I also rate these highly: '+amazings.join(', ')+'. '+(mood?'I am in the mood for: '+mood+'. ':'')+'Suggest 10 films I might love that are NOT in my list above. Return ONLY a JSON array of objects with keys: title, year, reason (one sentence why I would like it). No other text.';
   document.getElementById('suggestResults').innerHTML='<p style="color:#888">Asking AI...</p>';
   try{
-    const resp=await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=AQ.Ab8RN6LKL2l3G6Yz4GBMKdrEX9Rv4wfdTKtvC4vGkIqI2QNCIQ',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}]})});
+    const resp=await fetch('https://openrouter.ai/api/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer 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','HTTP-Referer':'https://d21se3p58mjg34.cloudfront.net'},body:JSON.stringify({model:'meta-llama/llama-3.1-8b-instruct:free',messages:[{role:'user',content:prompt}]})});
     const data=await resp.json();
-    const text=data.candidates[0].content.parts[0].text;
+    const text=data.choices[0].message.content;
     const match=text.match(/\\[.*\\]/s);
     if(match){
       const suggestions=JSON.parse(match[0]);
@@ -2526,9 +2526,9 @@ async function getSuggestions(){
   const prompt='I love these video games: '+goats.join(', ')+'. I also rate these highly: '+amazings.join(', ')+'. '+(mood?'I am in the mood for: '+mood+'. ':'')+'Suggest 10 video games I might love. Return ONLY a JSON array of objects with keys: title, year, reason (one sentence). No other text.';
   document.getElementById('suggestResults').innerHTML='<p style="color:#888">Asking AI...</p>';
   try{
-    const resp=await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=AQ.Ab8RN6LKL2l3G6Yz4GBMKdrEX9Rv4wfdTKtvC4vGkIqI2QNCIQ',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}]})});
+    const resp=await fetch('https://openrouter.ai/api/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer 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','HTTP-Referer':'https://d21se3p58mjg34.cloudfront.net'},body:JSON.stringify({model:'meta-llama/llama-3.1-8b-instruct:free',messages:[{role:'user',content:prompt}]})});
     const data=await resp.json();
-    const text=data.candidates[0].content.parts[0].text;
+    const text=data.choices[0].message.content;
     const match=text.match(/\\[.*\\]/s);
     if(match){
       const suggestions=JSON.parse(match[0]);
@@ -3604,9 +3604,9 @@ async function getSuggestions(){
   const prompt='I love these books: '+goats.join(', ')+'. I also rate these highly: '+amazings.join(', ')+'. '+(mood?'I am in the mood for: '+mood+'. ':'')+'Suggest 10 books I might love. Return ONLY a JSON array of objects with keys: title, author, year, reason (one sentence). No other text.';
   document.getElementById('suggestResults').innerHTML='<p style="color:#888">Asking AI...</p>';
   try{
-    const resp=await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=AQ.Ab8RN6LKL2l3G6Yz4GBMKdrEX9Rv4wfdTKtvC4vGkIqI2QNCIQ',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}]})});
+    const resp=await fetch('https://openrouter.ai/api/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer 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','HTTP-Referer':'https://d21se3p58mjg34.cloudfront.net'},body:JSON.stringify({model:'meta-llama/llama-3.1-8b-instruct:free',messages:[{role:'user',content:prompt}]})});
     const data=await resp.json();
-    const text=data.candidates[0].content.parts[0].text;
+    const text=data.choices[0].message.content;
     const match=text.match(/\\[.*\\]/s);
     if(match){
       const suggestions=JSON.parse(match[0]);
@@ -4377,9 +4377,9 @@ async function getSuggestions(){
   const prompt='I love these board games: '+goats.join(', ')+'. I also rate these highly: '+amazings.join(', ')+'. '+(mood?'Preference: '+mood+'. ':'')+'Suggest 10 board games I might love. Return ONLY a JSON array of objects with keys: title, year, reason (one sentence). No other text.';
   document.getElementById('suggestResults').innerHTML='<p style="color:#888">Asking AI...</p>';
   try{
-    const resp=await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=AQ.Ab8RN6LKL2l3G6Yz4GBMKdrEX9Rv4wfdTKtvC4vGkIqI2QNCIQ',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}]})});
+    const resp=await fetch('https://openrouter.ai/api/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer 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','HTTP-Referer':'https://d21se3p58mjg34.cloudfront.net'},body:JSON.stringify({model:'meta-llama/llama-3.1-8b-instruct:free',messages:[{role:'user',content:prompt}]})});
     const data=await resp.json();
-    const text=data.candidates[0].content.parts[0].text;
+    const text=data.choices[0].message.content;
     const match=text.match(/\\[.*\\]/s);
     if(match){
       const suggestions=JSON.parse(match[0]);
