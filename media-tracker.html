@@ -1066,16 +1066,43 @@ function confirmBulk(){
 // Suggestions
 function openSuggestions(){
   let html='<button class="modal-close" onclick="closeSuggestions()">&times;</button>';
-  html+='<h2>✨ Suggestions</h2>';
-  html+='<p style="font-size:11px;color:#888;margin-bottom:10px">Based on your ratings — picks unwatched films matching your favourite genres, directors, and decades.</p>';
-  html+='<div class="modal-actions"><button class="btn-primary" onclick="getSuggestions()">Suggest</button></div>';
+  html+='<h2>✨ AI Suggestions</h2>';
+  html+='<label>Mood/Genre (optional)</label><input id="suggestMood" placeholder="e.g. dark thriller, epic sci-fi, funny">';
+  html+='<div class="modal-actions"><button class="btn-primary" onclick="getSuggestions()">Get AI Suggestions</button><button class="btn-secondary" onclick="getLocalSuggestions()">Quick Suggest (no AI)</button></div>';
   html+='<div id="suggestResults" style="margin-top:12px"></div>';
   document.getElementById('suggestModalContent').innerHTML=html;
   document.getElementById('suggestModal').style.display='block';
 }
 function closeSuggestions(){document.getElementById('suggestModal').style.display='none'}
-function getSuggestions(){
-  // Build taste profile from GOAT and Amazing films
+async function getSuggestions(){
+  const mood=document.getElementById('suggestMood').value;
+  const goats=films.filter(f=>f.goatTier>0).map(f=>f.title+' ('+f.year+')').slice(0,15);
+  const amazings=films.filter(f=>f.rating==='amazing').map(f=>f.title+' ('+f.year+')').slice(0,10);
+  const existing=films.map(f=>f.title.toLowerCase());
+  const prompt='I love these films (my all-time favourites): '+goats.join(', ')+'. I also rate these highly: '+amazings.join(', ')+'. '+(mood?'I am in the mood for: '+mood+'. ':'')+'Suggest 10 films I might love that are NOT in my list above. Return ONLY a JSON array of objects with keys: title, year, reason (one sentence why I would like it). No other text.';
+  document.getElementById('suggestResults').innerHTML='<p style="color:#888">Asking AI...</p>';
+  try{
+    const resp=await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=gen-lang-client-0914389110',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}]})});
+    const data=await resp.json();
+    const text=data.candidates[0].content.parts[0].text;
+    const match=text.match(/\\[.*\\]/s);
+    if(match){
+      const suggestions=JSON.parse(match[0]);
+      let html='';
+      suggestions.forEach(s=>{
+        const inLib=existing.includes(s.title.toLowerCase());
+        html+='<div style="display:flex;gap:8px;padding:8px 0;border-bottom:1px solid #222;align-items:center">';
+        html+='<div style="flex:1"><div style="font-size:12px;font-weight:600">'+s.title+' <span style="color:#888">('+s.year+')</span></div>';
+        html+='<div style="font-size:10px;color:#888">'+s.reason+'</div></div>';
+        if(inLib)html+='<span style="font-size:9px;color:#888">In library</span>';
+        else html+='<button class="btn-secondary" onclick="markSoon(\\''+s.title.replace(/'/g,"\\\\'")+'\\')" style="font-size:10px">⚡ Soon</button>';
+        html+='</div>';
+      });
+      document.getElementById('suggestResults').innerHTML=html;
+    }else{document.getElementById('suggestResults').innerHTML='<p style="color:#e24b4a">Could not parse AI response.</p>'}
+  }catch(e){document.getElementById('suggestResults').innerHTML='<p style="color:#e24b4a">Error: '+e.message+'</p>'}
+}
+function getLocalSuggestions(){
   const loved=films.filter(f=>f.goatTier>0||f.rating==='amazing');
   const genreScores={},dirScores={},decadeScores={};
   loved.forEach(f=>{
@@ -1083,7 +1110,6 @@ function getSuggestions(){
     if(f.director)(f.director).split(',').forEach(d=>{const t=d.trim();if(t)dirScores[t]=(dirScores[t]||0)+1});
     if(f.year){const dec=Math.floor(f.year/10)*10;decadeScores[dec]=(decadeScores[dec]||0)+1}
   });
-  // Score unwatched films
   const unwatched=films.filter(f=>!f.watched&&f.goatTier===0);
   const scored=unwatched.map(f=>{
     let score=0;
@@ -1092,28 +1118,18 @@ function getSuggestions(){
     if(f.year){const dec=Math.floor(f.year/10)*10;if(decadeScores[dec])score+=decadeScores[dec]}
     if(parseFloat(f.imdbRating)>=8.0)score+=3;
     if(parseFloat(f.imdbRating)>=8.5)score+=3;
-    // Small random factor to vary results
     score+=Math.random()*2;
     return{film:f,score};
   }).sort((a,b)=>b.score-a.score).slice(0,10);
-
   let html='';
-  if(scored.length===0){html='<p style="color:#888">No unwatched films to suggest from.</p>'}
-  else{
-    scored.forEach(s=>{
-      const f=s.film;
-      const poster=posters[f.id];
-      const reasons=[];
-      if(f.category&&genreScores[f.category])reasons.push(f.category+' (you love this genre)');
-      if(f.director){const topDir=f.director.split(',')[0].trim();if(dirScores[topDir])reasons.push('Director: '+topDir)}
-      if(f.imdbRating&&parseFloat(f.imdbRating)>=8.0)reasons.push('IMDB: '+f.imdbRating);
-      html+='<div style="display:flex;gap:8px;padding:8px 0;border-bottom:1px solid #222;align-items:center">';
-      if(poster)html+='<img src="'+poster+'" style="width:35px;height:52px;object-fit:cover;border-radius:3px">';
-      html+='<div style="flex:1"><div style="font-size:12px;font-weight:600">'+f.title+' <span style="color:#888">('+(f.year||'?')+')</span></div>';
-      html+='<div style="font-size:10px;color:#888">'+reasons.join(' · ')+'</div></div>';
-      html+='<button class="btn-secondary" onclick="markSoon(\\''+f.title.replace(/'/g,"\\\\'")+'\\')" style="font-size:10px">⚡ Soon</button>';
-      html+='</div>';
-    });
+  if(scored.length===0){html='<p style="color:#888">No unwatched films to suggest.</p>'}
+  else{scored.forEach(s=>{const f=s.film;const poster=posters[f.id];
+    html+='<div style="display:flex;gap:8px;padding:8px 0;border-bottom:1px solid #222;align-items:center">';
+    if(poster)html+='<img src="'+poster+'" style="width:35px;height:52px;object-fit:cover;border-radius:3px">';
+    html+='<div style="flex:1"><div style="font-size:12px;font-weight:600">'+f.title+' <span style="color:#888">('+(f.year||'?')+')</span></div>';
+    html+='<div style="font-size:10px;color:#888">'+(f.category||'')+' · '+(f.director||'')+'</div></div>';
+    html+='<button class="btn-secondary" onclick="markSoon(\\''+f.title.replace(/'/g,"\\\\'")+'\\')" style="font-size:10px">⚡ Soon</button>';
+    html+='</div>'});
   }
   document.getElementById('suggestResults').innerHTML=html;
 }
