@@ -1747,7 +1747,7 @@ body{background:#0f0f0f;color:#eee;font-family:-apple-system,BlinkMacSystemFont,
 <select id="decadeFilter" onchange="renderGrid()"><option value="">All Decades</option></select>
 <select id="ratingFilter" onchange="renderGrid()"><option value="">All Ratings</option><option value="goat">GOAT</option><option value="amazing">Amazing</option><option value="good">Good</option><option value="meh">Meh</option><option value="dislike">Didn't Like</option><option value="neveragain">Never Again</option><option value="unrated">Unrated</option></select>
 <select id="playStatusFilter" onchange="renderGrid()"><option value="">All Play States</option><option value="unplayed">⬜ Unplayed</option><option value="played">✔ Played</option><option value="completed">✅ Completed</option><option value="playednotcompleted">Played, not completed</option></select>
-<select id="flagFilter" onchange="renderGrid()"><option value="">No Flag</option><option value="needsrating">Needs Rating</option><option value="needsestimate">Needs Estimate</option><option value="soon">⚡ Soon</option></select>
+<select id="flagFilter" onchange="renderGrid()"><option value="">No Flag</option><option value="needsrating">Needs Rating</option><option value="needsestimate">Needs Estimate</option><option value="soon">⚡ Soon</option><option value="steamDeck">🎮 Steam Deck</option><option value="familyPuzzle">👨‍👩‍👧 Family Puzzle</option></select>
 <select id="coverFilter" onchange="renderGrid()"><option value="">All Covers</option><option value="wrong">Flagged Wrong</option><option value="confirmed">Confirmed</option><option value="unreviewed">Unreviewed</option></select>
 <select id="developerFilter" onchange="renderGrid()"><option value="">All Developers</option></select>
 <select id="publisherFilter" onchange="renderGrid()"><option value="">All Publishers</option></select>
@@ -1807,7 +1807,8 @@ const NEWLIST = [
 "Ghost of Tsushima","Spider-Man","Spider-Man: Miles Morales","Horizon Zero Dawn","Horizon Forbidden West","Ratchet & Clank: Rift Apart","Uncharted 4","Death Stranding","Astro Bot","Gran Turismo 7",
 "Cyberpunk 2077","Starfield","Fallout 4","Skyrim","Oblivion","Morrowind","Fallout: New Vegas","Fallout 3","Wasteland 3","Outer Worlds",
 "Resident Evil Village","Resident Evil 4 Remake","Resident Evil 2 Remake","Silent Hill 2 Remake","Alan Wake 2","Dead Space Remake","The Evil Within 2","Amnesia: The Dark Descent","Soma","Phasmophobia",
-"It Takes Two","A Way Out","Overcooked 2","Moving Out","Unravel Two","Sackboy: A Big Adventure","Lego Star Wars: The Skywalker Saga","Diablo IV","Path of Exile","Lost Ark"
+"It Takes Two","A Way Out","Overcooked 2","Moving Out","Unravel Two","Sackboy: A Big Adventure","Lego Star Wars: The Skywalker Saga","Diablo IV","Path of Exile","Lost Ark",
+"Prey","Skin Deep","Mosa Lina","The Forgotten City","Pragmata","Undertale","Angeline Era","Vampire Survivors","Metal Gear Solid V: The Phantom Pain","Pentiment","Norco"
 ];
 
 let games = [];
@@ -1860,6 +1861,8 @@ function runMigrations(){
     if(g.consoleFormat===undefined)g.consoleFormat='';
     if(g.sortTitle===undefined)g.sortTitle=makeSortTitle(g.title);
     if(g.rawgId===undefined)g.rawgId=null;
+    if(g.steamDeck===undefined)g.steamDeck=false;
+    if(g.familyPuzzle===undefined)g.familyPuzzle=false;
   });
   // Corruption cleanup
   games.forEach(g=>{
@@ -1881,6 +1884,9 @@ function mergeNewList(){
       existing.add(norm);
     }
   });
+  // Auto-tag Steam Deck candidates
+  const steamDeckTitles=new Set(['prey','cyberpunk2077','skindeep','mosalina','skyrim','theforgottencity','portal','pragmata','undertale','control','halflife2','angelineera','vampiresurvivors','terraria','metalgearsolidvthephantompain','subnautica','pentiment','norco'].map(t=>t.replace(/[^a-z0-9]/g,'')));
+  games.forEach(g=>{if(steamDeckTitles.has(normalize(g.title))&&!g.steamDeck)g.steamDeck=true});
 }
 
 function updateMaxId(){maxId=games.reduce((m,g)=>Math.max(m,g.id),0)}
@@ -1922,6 +1928,8 @@ function getFiltered(){
     if(flag==='needsrating'&&!(g.played&&!g.rating&&g.goatTier===0))return false;
     if(flag==='needsestimate'&&!g.needsEstimate)return false;
     if(flag==='soon'&&!g.playSoon)return false;
+    if(flag==='steamDeck'&&!g.steamDeck)return false;
+    if(flag==='familyPuzzle'&&!g.familyPuzzle)return false;
     if(cover==='wrong'&&!g.coverWrong)return false;
     if(cover==='confirmed'&&!g.coverConfirmed)return false;
     if(cover==='unreviewed'&&(g.coverWrong||g.coverConfirmed))return false;
@@ -2184,6 +2192,10 @@ function openTileModal(id){
   html+='<option value="completed" '+(g.completed?'selected':'')+'>✅ Completed</option>';
   html+='</select>';
   html+='</div>';
+  html+='<div style="display:flex;gap:12px;margin:6px 0">';
+  html+='<label style="font-size:11px;background:#222;padding:3px 8px;border-radius:4px;cursor:pointer"><input type="checkbox" '+(g.steamDeck?'checked':'')+' onchange="toggleTag('+g.id+',\\'steamDeck\\',this.checked)"> 🎮 Steam Deck</label>';
+  html+='<label style="font-size:11px;background:#222;padding:3px 8px;border-radius:4px;cursor:pointer"><input type="checkbox" '+(g.familyPuzzle?'checked':'')+' onchange="toggleTag('+g.id+',\\'familyPuzzle\\',this.checked)"> 👨‍👩‍👧 Family Puzzle</label>';
+  html+='</div>';
 
   document.getElementById('tileModalContent').innerHTML=html;
   document.getElementById('tileModal').style.display='block';
@@ -2330,6 +2342,10 @@ function setPlayStatus(id,status){
 function toggleSoon(id,val){
   const g=games.find(x=>x.id===id);if(!g)return;
   g.playSoon=val;save();
+}
+function toggleTag(id,tag,val){
+  const g=games.find(x=>x.id===id);if(!g)return;
+  g[tag]=val;save();
 }
 function markWrong(id){
   const g=games.find(x=>x.id===id);if(!g)return;
