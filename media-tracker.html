@@ -2511,9 +2511,9 @@ function confirmBulk(){
 // Suggestions
 function openSuggestions(){
   let html='<button class="modal-close" onclick="closeSuggestions()">&times;</button>';
-  html+='<h2>✨ Suggestions</h2>';
+  html+='<h2>✨ AI Suggestions</h2>';
   html+='<label>Mood/Genre (optional)</label><input id="suggestMood" placeholder="e.g. atmospheric RPG, challenging">';
-  html+='<div class="modal-actions"><button class="btn-primary" onclick="getSuggestions()">Get Suggestions</button></div>';
+  html+='<div class="modal-actions"><button class="btn-primary" onclick="getSuggestions()">Get AI Suggestions</button><button class="btn-secondary" onclick="getLocalSuggestions()">Quick Suggest</button></div>';
   html+='<div id="suggestResults" style="margin-top:12px"></div>';
   document.getElementById('suggestModalContent').innerHTML=html;
   document.getElementById('suggestModal').style.display='block';
@@ -2521,14 +2521,14 @@ function openSuggestions(){
 function closeSuggestions(){document.getElementById('suggestModal').style.display='none'}
 async function getSuggestions(){
   const mood=document.getElementById('suggestMood').value;
-  const goats=games.filter(g=>g.goatTier>0).map(g=>g.title);
+  const goats=games.filter(g=>g.goatTier>0).map(g=>g.title).slice(0,15);
   const amazings=games.filter(g=>g.rating==='amazing').map(g=>g.title).slice(0,10);
-  const prompt='Based on these favourite games: '+goats.join(', ')+'. And highly rated: '+amazings.join(', ')+'. '+(mood?'Preference: '+mood+'. ':'')+'Suggest 10 games. Return JSON array of {title,year,reason}.';
-  document.getElementById('suggestResults').innerHTML='<p style="color:#888">Loading...</p>';
+  const prompt='I love these video games: '+goats.join(', ')+'. I also rate these highly: '+amazings.join(', ')+'. '+(mood?'I am in the mood for: '+mood+'. ':'')+'Suggest 10 video games I might love. Return ONLY a JSON array of objects with keys: title, year, reason (one sentence). No other text.';
+  document.getElementById('suggestResults').innerHTML='<p style="color:#888">Asking AI...</p>';
   try{
-    const resp=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':'YOUR_CLAUDE_API_KEY','anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1024,messages:[{role:'user',content:prompt}]})});
+    const resp=await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=gen-lang-client-0914389110',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}]})});
     const data=await resp.json();
-    const text=data.content[0].text;
+    const text=data.candidates[0].content.parts[0].text;
     const match=text.match(/\\[.*\\]/s);
     if(match){
       const suggestions=JSON.parse(match[0]);
@@ -2536,15 +2536,24 @@ async function getSuggestions(){
       let html='';
       suggestions.forEach(s=>{
         const exists=existing.has(normalize(s.title));
-        html+='<div style="padding:8px;border-bottom:1px solid #222;display:flex;justify-content:space-between;align-items:center">';
-        html+='<div><strong>'+s.title+'</strong> ('+s.year+')<br><span style="font-size:10px;color:#888">'+s.reason+'</span></div>';
-        if(exists)html+='<button class="btn-secondary" onclick="markGameSoon(\\''+s.title.replace(/'/g,"\\\\'")+'\\')" style="font-size:10px">⚡ Soon</button>';
-        else html+='<span style="font-size:10px;color:#2ecc71">Not in library</span>';
-        html+='</div>';
+        html+='<div style="padding:8px 0;border-bottom:1px solid #222"><div style="font-size:12px;font-weight:600">'+s.title+' ('+s.year+')</div><div style="font-size:10px;color:#888">'+s.reason+'</div>'+(exists?'<span style="font-size:9px;color:#888">In library</span>':'')+'</div>';
       });
       document.getElementById('suggestResults').innerHTML=html;
-    }
+    }else{document.getElementById('suggestResults').innerHTML='<p style="color:#e24b4a">Could not parse AI response.</p>'}
   }catch(e){document.getElementById('suggestResults').innerHTML='<p style="color:#e24b4a">Error: '+e.message+'</p>'}
+}
+function getLocalSuggestions(){
+  const loved=games.filter(g=>g.goatTier>0||g.rating==='amazing');
+  const genreScores={},devScores={};
+  loved.forEach(g=>{if(g.category)genreScores[g.category]=(genreScores[g.category]||0)+1;if(g.developer)(g.developer).split(',').forEach(d=>{const t=d.trim();if(t)devScores[t]=(devScores[t]||0)+1})});
+  const unplayed=games.filter(g=>!g.played&&g.goatTier===0);
+  const scored=unplayed.map(g=>{let score=0;if(g.category&&genreScores[g.category])score+=genreScores[g.category]*3;if(g.developer)(g.developer).split(',').forEach(d=>{const t=d.trim();if(devScores[t])score+=devScores[t]*5});if(parseInt(g.metaRating)>=85)score+=3;score+=Math.random()*2;return{game:g,score}}).sort((a,b)=>b.score-a.score).slice(0,10);
+  let html='';
+  if(scored.length===0)html='<p style="color:#888">No unplayed games to suggest.</p>';
+  else scored.forEach(s=>{const g=s.game;
+    html+='<div style="padding:8px 0;border-bottom:1px solid #222"><div style="font-size:12px;font-weight:600">'+g.title+'</div><div style="font-size:10px;color:#888">'+(g.category||'')+' · '+(g.developer||'')+'</div></div>';
+  });
+  document.getElementById('suggestResults').innerHTML=html;
 }
 function markGameSoon(title){
   const g=games.find(x=>x.title.toLowerCase()===title.toLowerCase());
@@ -3581,14 +3590,37 @@ function confirmBulk(){
 
 // Suggestions
 function openSuggestions(){
-  let html='<button class="modal-close" onclick="closeSuggestions()">&times;</button><h2>✨ Suggestions</h2>';
-  html+='<p style="font-size:11px;color:#888;margin-bottom:10px">Picks unread books matching your favourite genres and authors.</p>';
-  html+='<div class="modal-actions"><button class="btn-primary" onclick="getSuggestions()">Suggest</button></div>';
+  let html='<button class="modal-close" onclick="closeSuggestions()">&times;</button><h2>✨ AI Suggestions</h2>';
+  html+='<label>Preference (optional)</label><input id="suggestMood" placeholder="e.g. dark literary fiction, sci-fi, memoir">';
+  html+='<div class="modal-actions"><button class="btn-primary" onclick="getSuggestions()">Get AI Suggestions</button><button class="btn-secondary" onclick="getLocalSuggestions()">Quick Suggest</button></div>';
   html+='<div id="suggestResults" style="margin-top:12px"></div>';
   document.getElementById('suggestModalContent').innerHTML=html;document.getElementById('suggestModal').style.display='block';
 }
 function closeSuggestions(){document.getElementById('suggestModal').style.display='none'}
-function getSuggestions(){
+async function getSuggestions(){
+  const mood=document.getElementById('suggestMood').value;
+  const goats=books.filter(b=>b.goatTier>0).map(b=>b.title+' by '+b.author).slice(0,15);
+  const amazings=books.filter(b=>b.rating==='amazing').map(b=>b.title+' by '+b.author).slice(0,10);
+  const prompt='I love these books: '+goats.join(', ')+'. I also rate these highly: '+amazings.join(', ')+'. '+(mood?'I am in the mood for: '+mood+'. ':'')+'Suggest 10 books I might love. Return ONLY a JSON array of objects with keys: title, author, year, reason (one sentence). No other text.';
+  document.getElementById('suggestResults').innerHTML='<p style="color:#888">Asking AI...</p>';
+  try{
+    const resp=await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=gen-lang-client-0914389110',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}]})});
+    const data=await resp.json();
+    const text=data.candidates[0].content.parts[0].text;
+    const match=text.match(/\\[.*\\]/s);
+    if(match){
+      const suggestions=JSON.parse(match[0]);
+      const existing=new Set(books.map(b=>normalize(b.title)));
+      let html='';
+      suggestions.forEach(s=>{
+        const inLib=existing.has(normalize(s.title));
+        html+='<div style="padding:8px 0;border-bottom:1px solid #222"><div style="font-size:12px;font-weight:600">'+s.title+' <span style="color:#888">by '+s.author+' ('+s.year+')</span></div><div style="font-size:10px;color:#888">'+s.reason+'</div>'+(inLib?'<span style="font-size:9px;color:#888">In library</span>':'')+'</div>';
+      });
+      document.getElementById('suggestResults').innerHTML=html;
+    }else{document.getElementById('suggestResults').innerHTML='<p style="color:#e24b4a">Could not parse AI response.</p>'}
+  }catch(e){document.getElementById('suggestResults').innerHTML='<p style="color:#e24b4a">Error: '+e.message+'</p>'}
+}
+function getLocalSuggestions(){
   const loved=books.filter(b=>b.goatTier>0||b.rating==='amazing');
   const genreScores={},authorScores={};
   loved.forEach(b=>{if(b.category)genreScores[b.category]=(genreScores[b.category]||0)+1;if(b.author)(b.author).split(',').forEach(a=>{const t=a.trim();if(t)authorScores[t]=(authorScores[t]||0)+1})});
@@ -3596,11 +3628,8 @@ function getSuggestions(){
   const scored=unread.map(b=>{let score=0;if(b.category&&genreScores[b.category])score+=genreScores[b.category]*3;if(b.author)(b.author).split(',').forEach(a=>{const t=a.trim();if(authorScores[t])score+=authorScores[t]*5});score+=Math.random()*2;return{book:b,score}}).sort((a,b)=>b.score-a.score).slice(0,10);
   let html='';
   if(scored.length===0)html='<p style="color:#888">No unread books to suggest.</p>';
-  else scored.forEach(s=>{const b=s.book;const cover=covers[b.id];
-    html+='<div style="display:flex;gap:8px;padding:8px 0;border-bottom:1px solid #222;align-items:center">';
-    if(cover)html+='<img src="'+cover+'" style="width:30px;height:45px;object-fit:cover;border-radius:3px">';
-    html+='<div style="flex:1"><div style="font-size:12px;font-weight:600">'+b.title+'</div><div style="font-size:10px;color:#888">'+b.author+' · '+(b.category||'')+'</div></div>';
-    html+='<button class="btn-secondary" onclick="const bk=books.find(x=>x.id==='+b.id+');if(bk){bk.readSoon=true;save()};this.textContent=\\'✓\\'" style="font-size:10px">⚡ Soon</button></div>';
+  else scored.forEach(s=>{const b=s.book;
+    html+='<div style="padding:8px 0;border-bottom:1px solid #222"><div style="font-size:12px;font-weight:600">'+b.title+'</div><div style="font-size:10px;color:#888">'+b.author+' · '+(b.category||'')+'</div></div>';
   });
   document.getElementById('suggestResults').innerHTML=html;
 }
@@ -4334,14 +4363,37 @@ function renderHistory(){
 
 // Suggestions
 function openSuggestions(){
-  let html='<button class="modal-close" onclick="closeSuggestions()">&times;</button><h2>✨ Suggestions</h2>';
-  html+='<p style="font-size:11px;color:#888;margin-bottom:10px">Picks unplayed games matching your favourite categories and designers.</p>';
-  html+='<div class="modal-actions"><button class="btn-primary" onclick="getSuggestions()">Suggest</button></div>';
+  let html='<button class="modal-close" onclick="closeSuggestions()">&times;</button><h2>✨ AI Suggestions</h2>';
+  html+='<label>Preference (optional)</label><input id="suggestMood" placeholder="e.g. heavy euro, co-op, 2 player">';
+  html+='<div class="modal-actions"><button class="btn-primary" onclick="getSuggestions()">Get AI Suggestions</button><button class="btn-secondary" onclick="getLocalSuggestions()">Quick Suggest</button></div>';
   html+='<div id="suggestResults" style="margin-top:12px"></div>';
   document.getElementById('suggestModalContent').innerHTML=html;document.getElementById('suggestModal').style.display='block';
 }
 function closeSuggestions(){document.getElementById('suggestModal').style.display='none'}
-function getSuggestions(){
+async function getSuggestions(){
+  const mood=document.getElementById('suggestMood').value;
+  const goats=games.filter(g=>g.goatTier>0).map(g=>g.title).slice(0,10);
+  const amazings=games.filter(g=>g.rating==='amazing').map(g=>g.title).slice(0,10);
+  const prompt='I love these board games: '+goats.join(', ')+'. I also rate these highly: '+amazings.join(', ')+'. '+(mood?'Preference: '+mood+'. ':'')+'Suggest 10 board games I might love. Return ONLY a JSON array of objects with keys: title, year, reason (one sentence). No other text.';
+  document.getElementById('suggestResults').innerHTML='<p style="color:#888">Asking AI...</p>';
+  try{
+    const resp=await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=gen-lang-client-0914389110',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}]})});
+    const data=await resp.json();
+    const text=data.candidates[0].content.parts[0].text;
+    const match=text.match(/\\[.*\\]/s);
+    if(match){
+      const suggestions=JSON.parse(match[0]);
+      const existing=games.map(g=>g.title.toLowerCase());
+      let html='';
+      suggestions.forEach(s=>{
+        const inLib=existing.includes(s.title.toLowerCase());
+        html+='<div style="padding:8px 0;border-bottom:1px solid #222"><div style="font-size:12px;font-weight:600">'+s.title+' ('+s.year+')</div><div style="font-size:10px;color:#888">'+s.reason+'</div>'+(inLib?'<span style="font-size:9px;color:#888">In library</span>':'')+'</div>';
+      });
+      document.getElementById('suggestResults').innerHTML=html;
+    }else{document.getElementById('suggestResults').innerHTML='<p style="color:#e24b4a">Could not parse AI response.</p>'}
+  }catch(e){document.getElementById('suggestResults').innerHTML='<p style="color:#e24b4a">Error: '+e.message+'</p>'}
+}
+function getLocalSuggestions(){
   const loved=games.filter(g=>g.goatTier>0||g.rating==='amazing');
   const catScores={},desScores={};
   loved.forEach(g=>{if(g.category)catScores[g.category]=(catScores[g.category]||0)+1;if(g.designer)(g.designer).split(',').forEach(d=>{const t=d.trim();if(t)desScores[t]=(desScores[t]||0)+1})});
@@ -4349,10 +4401,8 @@ function getSuggestions(){
   const scored=unplayed.map(g=>{let score=0;if(g.category&&catScores[g.category])score+=catScores[g.category]*3;if(g.designer)(g.designer).split(',').forEach(d=>{const t=d.trim();if(desScores[t])score+=desScores[t]*5});if(g.bggRating&&parseFloat(g.bggRating)>=8.0)score+=3;score+=Math.random()*2;return{game:g,score}}).sort((a,b)=>b.score-a.score).slice(0,10);
   let html='';
   if(scored.length===0)html='<p style="color:#888">No unplayed games to suggest.</p>';
-  else scored.forEach(s=>{const g=s.game;const cover=covers[g.id];
-    html+='<div style="display:flex;gap:8px;padding:8px 0;border-bottom:1px solid #222;align-items:center">';
-    if(cover)html+='<img src="'+cover+'" style="width:30px;height:30px;object-fit:cover;border-radius:3px">';
-    html+='<div style="flex:1"><div style="font-size:12px;font-weight:600">'+g.title+'</div><div style="font-size:10px;color:#888">'+(g.category||'')+' · '+(g.bggRating?'BGG:'+g.bggRating:'')+'</div></div></div>';
+  else scored.forEach(s=>{const g=s.game;
+    html+='<div style="padding:8px 0;border-bottom:1px solid #222"><div style="font-size:12px;font-weight:600">'+g.title+'</div><div style="font-size:10px;color:#888">'+(g.category||'')+' · '+(g.bggRating?'BGG:'+g.bggRating:'')+'</div></div>';
   });
   document.getElementById('suggestResults').innerHTML=html;
 }
