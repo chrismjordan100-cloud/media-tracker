@@ -413,7 +413,7 @@ let fetchingCovers = false;
 
 function normalize(t){return (t||'').toLowerCase().replace(/[^a-z0-9]/g,'')}
 function makeSortTitle(t){return (t||'').toLowerCase().replace(/^(the|a|an)\\s+/,'')}
-function makeFilm(title,id){return{id,title,sortTitle:makeSortTitle(title),year:0,mediaType:'film',category:'',goatTier:0,rating:'',watched:false,watchSoon:false,watchHistory:[],moods:[],notes:'',director:'',cast:'',imdbRating:'',imdbId:'',tmdbId:null,runtime:0,certificate:'',posterWrong:false,posterConfirmed:false,needsEstimate:false}}
+function makeFilm(title,id){return{id,title,addedDate:new Date().toISOString(),sortTitle:makeSortTitle(title),year:0,mediaType:'film',category:'',goatTier:0,rating:'',watched:false,watchSoon:false,watchHistory:[],moods:[],notes:'',director:'',cast:'',imdbRating:'',imdbId:'',tmdbId:null,runtime:0,certificate:'',posterWrong:false,posterConfirmed:false,needsEstimate:false}}
 
 function save(){
   localStorage.setItem('ft_films',JSON.stringify(films));
@@ -498,6 +498,7 @@ function getFiltered(){
     if(flag==='needsrating'&&!(f.watched&&!f.rating&&f.goatTier===0))return false;
     if(flag==='needsestimate'&&!f.needsEstimate)return false;
     if(flag==='soon'&&!f.watchSoon)return false;
+    if(flag==='new'&&(!f.addedDate||Date.now()-new Date(f.addedDate).getTime()>86400000))return false;
     if(cover==='wrong'&&!f.posterWrong)return false;
     if(cover==='confirmed'&&!f.posterConfirmed)return false;
     if(cover==='unreviewed'&&(f.posterWrong||f.posterConfirmed))return false;
@@ -1747,7 +1748,7 @@ body{background:#0f0f0f;color:#eee;font-family:-apple-system,BlinkMacSystemFont,
 <select id="decadeFilter" onchange="renderGrid()"><option value="">All Decades</option></select>
 <select id="ratingFilter" onchange="renderGrid()"><option value="">All Ratings</option><option value="goat">GOAT</option><option value="amazing">Amazing</option><option value="good">Good</option><option value="meh">Meh</option><option value="dislike">Didn't Like</option><option value="neveragain">Never Again</option><option value="unrated">Unrated</option></select>
 <select id="playStatusFilter" onchange="renderGrid()"><option value="">All Play States</option><option value="unplayed">⬜ Unplayed</option><option value="played">✔ Played</option><option value="completed">✅ Completed</option><option value="playednotcompleted">Played, not completed</option></select>
-<select id="flagFilter" onchange="renderGrid()"><option value="">No Flag</option><option value="needsrating">Needs Rating</option><option value="needsestimate">Needs Estimate</option><option value="soon">⚡ Soon</option><option value="steamDeck">🎮 Steam Deck</option><option value="familyPuzzle">👨‍👩‍👧 Family Puzzle</option></select>
+<select id="flagFilter" onchange="renderGrid()"><option value="">No Flag</option><option value="needsrating">Needs Rating</option><option value="needsestimate">Needs Estimate</option><option value="soon">⚡ Soon</option><option value="steamDeck">🎮 Steam Deck</option><option value="familyPuzzle">👨‍👩‍👧 Family Puzzle</option><option value="new">🆕 New</option></select>
 <select id="coverFilter" onchange="renderGrid()"><option value="">All Covers</option><option value="wrong">Flagged Wrong</option><option value="confirmed">Confirmed</option><option value="unreviewed">Unreviewed</option></select>
 <select id="developerFilter" onchange="renderGrid()"><option value="">All Developers</option></select>
 <select id="publisherFilter" onchange="renderGrid()"><option value="">All Publishers</option></select>
@@ -1823,7 +1824,7 @@ let fetchingCovers = false;
 
 function normalize(t){return (t||'').toLowerCase().replace(/[^a-z0-9]/g,'')}
 function makeSortTitle(t){return (t||'').toLowerCase().replace(/^(the|a|an)\\s+/,'')}
-function makeGame(title,id){return{id,title,sortTitle:makeSortTitle(title),year:0,platform:'pc',consoleFormat:'',category:'',goatTier:0,rating:'',played:false,completed:false,playSoon:false,playHistory:[],vibes:[],notes:'',developer:'',publisher:'',metaRating:'',rawgId:null,coverWrong:false,coverConfirmed:false,needsEstimate:false}}
+function makeGame(title,id){return{id,title,addedDate:new Date().toISOString(),sortTitle:makeSortTitle(title),year:0,platform:'pc',consoleFormat:'',category:'',goatTier:0,rating:'',played:false,completed:false,playSoon:false,playHistory:[],vibes:[],notes:'',developer:'',publisher:'',metaRating:'',rawgId:null,coverWrong:false,coverConfirmed:false,needsEstimate:false}}
 
 function save(){
   localStorage.setItem('gt_games',JSON.stringify(games));
@@ -1928,6 +1929,7 @@ function getFiltered(){
     if(flag==='needsrating'&&!(g.played&&!g.rating&&g.goatTier===0))return false;
     if(flag==='needsestimate'&&!g.needsEstimate)return false;
     if(flag==='soon'&&!g.playSoon)return false;
+    if(flag==='new'&&(!g.addedDate||Date.now()-new Date(g.addedDate).getTime()>86400000))return false;
     if(flag==='steamDeck'&&!g.steamDeck)return false;
     if(flag==='familyPuzzle'&&!g.familyPuzzle)return false;
     if(cover==='wrong'&&!g.coverWrong)return false;
@@ -3013,7 +3015,7 @@ body{background:#0f0f0f;color:#eee;font-family:-apple-system,BlinkMacSystemFont,
 <select id="genreFilter" onchange="renderGrid()"><option value="">All Genres</option></select>
 <select id="decadeFilter" onchange="renderGrid()"><option value="">All Decades</option></select>
 <select id="ratingFilter" onchange="renderGrid()"><option value="">All Ratings</option><option value="goat">GOAT</option><option value="amazing">Amazing</option><option value="good">Good</option><option value="meh">Meh</option><option value="dislike">Didn't Like</option><option value="neveragain">Never Again</option><option value="unrated">Unrated</option></select>
-<select id="tagFilter" onchange="renderGrid()"><option value="">All Tags</option><option value="bookClub">📖 Book Club</option><option value="bookClubNominee">🏅 Nominee</option><option value="audiobook">🎧 Audiobook</option><option value="soon">⚡ Read Soon</option></select>
+<select id="tagFilter" onchange="renderGrid()"><option value="">All Tags</option><option value="bookClub">📖 Book Club</option><option value="bookClubNominee">🏅 Nominee</option><option value="audiobook">🎧 Audiobook</option><option value="soon">⚡ Read Soon</option><option value="new">🆕 New</option></select>
 <select id="authorFilter" onchange="renderGrid()"><option value="">All Authors</option></select>
 <select id="sortSelect" onchange="renderGrid()"><option value="tier">Tier</option><option value="az">A–Z</option><option value="year">Year</option><option value="mostread">Most Read</option><option value="pages">Page Count</option></select>
 </div>
@@ -3294,7 +3296,7 @@ let books=[],covers={},deletedIds=[],maxId=0,deleteMode=false,selectedIds=new Se
 
 function normalize(t){return(t||'').toLowerCase().replace(/[^a-z0-9]/g,'')}
 function makeSortTitle(t){return(t||'').toLowerCase().replace(/^(the|a|an)\\s+/,'')}
-function makeBook(title,id){return{id,title,sortTitle:makeSortTitle(title),year:0,author:'',category:'',bookType:'novel',goatTier:0,rating:'',read:false,readSoon:false,readHistory:[],notes:'',pages:0,olid:'',coverConfirmed:false,coverWrong:false}}
+function makeBook(title,id){return{id,title,addedDate:new Date().toISOString(),sortTitle:makeSortTitle(title),year:0,author:'',category:'',bookType:'novel',goatTier:0,rating:'',read:false,readSoon:false,readHistory:[],notes:'',pages:0,olid:'',coverConfirmed:false,coverWrong:false}}
 
 function save(){localStorage.setItem('bt_books',JSON.stringify(books));localStorage.setItem('bt_covers',JSON.stringify(covers));localStorage.setItem('bt_deleted',JSON.stringify(deletedIds))}
 function load(){
@@ -3328,6 +3330,7 @@ function getFiltered(){
     if(tag==='bookClubNominee'&&!b.bookClubNominee)return false;
     if(tag==='audiobook'&&!b.audiobook)return false;
     if(tag==='soon'&&!b.readSoon)return false;
+    if(tag==='new'&&(!b.addedDate||Date.now()-new Date(b.addedDate).getTime()>86400000))return false;
     if(author&&!(b.author||'').includes(author))return false;
     return true;
   });
@@ -3989,7 +3992,7 @@ let games=[],covers={},maxId=0,deleteMode=false,selectedIds=new Set(),fetchingCo
 
 function normalize(t){return(t||'').toLowerCase().replace(/[^a-z0-9]/g,'')}
 function makeSortTitle(t){return(t||'').toLowerCase().replace(/^(the|a|an)\\s+/,'')}
-function makeGame(title,id){return{id,title,sortTitle:makeSortTitle(title),year:0,designer:'',category:'',players:'',weight:0,goatTier:0,rating:'',played:false,playHistory:[],notes:'',bggId:null,bggRating:'',coverConfirmed:false}}
+function makeGame(title,id){return{id,title,addedDate:new Date().toISOString(),sortTitle:makeSortTitle(title),year:0,designer:'',category:'',players:'',weight:0,goatTier:0,rating:'',played:false,playHistory:[],notes:'',bggId:null,bggRating:'',coverConfirmed:false}}
 
 function save(){localStorage.setItem('bg_games',JSON.stringify(games));localStorage.setItem('bg_covers',JSON.stringify(covers))}
 function load(){const s=localStorage.getItem('bg_games');if(s)games=JSON.parse(s);else games=[...FULL_SEED];const c=localStorage.getItem('bg_covers');if(c)covers=JSON.parse(c);else covers={}}
