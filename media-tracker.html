@@ -3514,18 +3514,32 @@ function confirmDeleteBook(id){books=books.filter(x=>x.id!==id);deletedIds.push(
 
 function openFixModal(id){
   const b=books.find(x=>x.id===id);if(!b)return;
+  const esc=s=>(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
   let html='<button class="modal-close" onclick="closeFixModal()">&times;</button><h2>Fix Book</h2>';
-  html+='<label>Title</label><input id="fixTitle" value="'+b.title+'">';
-  html+='<label>Author</label><input id="fixAuthor" value="'+(b.author||'')+'">';
+  html+='<label>Title</label><input id="fixTitle" value="'+esc(b.title)+'">';
+  html+='<label>Author</label><input id="fixAuthor" value="'+esc(b.author||'')+'">';
   html+='<label>Year</label><input id="fixYear" type="number" value="'+(b.year||'')+'">';
   html+='<label>ISBN</label><input id="fixIsbn" placeholder="e.g. 9780141187761" value="">';
+  html+='<label>Cover URL</label><input id="fixCover" placeholder="Paste image URL from Amazon/Waterstones" value="'+(covers[b.id]||'')+'">';
   html+='<label>Pages</label><input id="fixPages" type="number" value="'+(b.pages||'')+'">';
   html+='<label>Type</label><select id="fixType"><option value="novel" '+((b.bookType||'novel')==='novel'?'selected':'')+'>📖 Novel</option><option value="graphic" '+(b.bookType==='graphic'?'selected':'')+'>🎨 Graphic Novel</option><option value="nonfiction" '+(b.bookType==='nonfiction'?'selected':'')+'>📘 Non-Fiction</option><option value="short" '+(b.bookType==='short'?'selected':'')+'>📄 Short Stories</option></select>';
   html+='<label>Genre</label><select id="fixGenre"><option value="">—</option>'+ALL_GENRES.map(g=>'<option value="'+g+'" '+(b.category===g?'selected':'')+'>'+g+'</option>').join('')+'</select>';
-  html+='<div class="modal-actions"><button class="btn-primary" onclick="saveFixModal('+b.id+')">Save & Fetch</button><button class="btn-secondary" onclick="closeFixModal()">Cancel</button></div>';
+  html+='<div class="modal-actions"><button class="btn-primary" onclick="saveFixModal('+b.id+')">Save & Fetch</button><button class="btn-secondary" onclick="saveFixManual('+b.id+')">Save (no fetch)</button><button class="btn-secondary" onclick="closeFixModal()">Cancel</button></div>';
   document.getElementById('fixModalContent').innerHTML=html;document.getElementById('fixModal').style.display='block';
 }
 function closeFixModal(){document.getElementById('fixModal').style.display='none'}
+function saveFixManual(id){
+  const b=books.find(x=>x.id===id);if(!b)return;
+  b.title=document.getElementById('fixTitle').value;b.sortTitle=makeSortTitle(b.title);
+  b.author=document.getElementById('fixAuthor').value;
+  b.year=parseInt(document.getElementById('fixYear').value)||0;
+  b.pages=parseInt(document.getElementById('fixPages').value)||0;
+  b.bookType=document.getElementById('fixType').value;
+  const genre=document.getElementById('fixGenre').value;if(genre)b.category=genre;
+  const coverUrl=document.getElementById('fixCover').value.trim();
+  if(coverUrl){covers[b.id]=coverUrl;b.coverConfirmed=true}
+  save();closeFixModal();renderGrid();openTileModal(id);
+}
 async function saveFixModal(id){
   const b=books.find(x=>x.id===id);if(!b)return;
   b.title=document.getElementById('fixTitle').value;b.sortTitle=makeSortTitle(b.title);
@@ -3534,35 +3548,60 @@ async function saveFixModal(id){
   b.pages=parseInt(document.getElementById('fixPages').value)||0;
   b.bookType=document.getElementById('fixType').value;
   const genre=document.getElementById('fixGenre').value;if(genre)b.category=genre;
+  const coverUrl=document.getElementById('fixCover').value.trim();
+  if(coverUrl){covers[b.id]=coverUrl;b.coverConfirmed=true}
   const isbn=document.getElementById('fixIsbn').value.trim();
-  b.coverConfirmed=false;save();closeFixModal();
-  if(isbn){await fetchByIsbn(b,isbn)}else{await fetchCover(b)}
+  b.coverConfirmed=coverUrl?true:false;save();closeFixModal();
+  if(isbn){await fetchByIsbn(b,isbn)}else if(!coverUrl){await fetchCover(b)}
   save();renderGrid();openTileModal(id);
 }
 
 async function fetchByIsbn(b,isbn){
   try{
     const resp=await fetch('https://openlibrary.org/isbn/'+isbn+'.json');
+    if(resp.ok){
+      const data=await resp.json();
+      if(data.title)b.title=data.title;
+      if(data.number_of_pages)b.pages=data.number_of_pages;
+      if(data.publish_date){const y=parseInt(data.publish_date.match(/\\d{4}/));if(y)b.year=y}
+      if(data.covers&&data.covers.length>0){covers[b.id]='https://covers.openlibrary.org/b/id/'+data.covers[0]+'-M.jpg'}
+      else{covers[b.id]='https://covers.openlibrary.org/b/isbn/'+isbn+'-M.jpg'}
+      if(data.works&&data.works.length>0){
+        const workKey=data.works[0].key;
+        const workResp=await fetch('https://openlibrary.org'+workKey+'.json');
+        const work=await workResp.json();
+        if(work.authors&&work.authors.length>0){
+          const authorKey=work.authors[0].author?work.authors[0].author.key:work.authors[0].key;
+          if(authorKey){const aResp=await fetch('https://openlibrary.org'+authorKey+'.json');const aData=await aResp.json();if(aData.name)b.author=aData.name}
+        }
+      }
+      b.sortTitle=makeSortTitle(b.title);
+      return;
+    }
+    // Fallback to Google Books if Open Library doesn't have the ISBN
+    await fetchByIsbnGoogle(b,isbn);
+  }catch(e){console.error('ISBN fetch error:',e);await fetchByIsbnGoogle(b,isbn).catch(()=>{})}
+}
+
+async function fetchByIsbnGoogle(b,isbn){
+  try{
+    const resp=await fetch('https://www.googleapis.com/books/v1/volumes?q=isbn:'+isbn);
     if(!resp.ok)return;
     const data=await resp.json();
-    if(data.title)b.title=data.title;
-    if(data.number_of_pages)b.pages=data.number_of_pages;
-    if(data.publish_date){const y=parseInt(data.publish_date.match(/\\d{4}/));if(y)b.year=y}
-    // Get cover
-    if(data.covers&&data.covers.length>0){covers[b.id]='https://covers.openlibrary.org/b/id/'+data.covers[0]+'-M.jpg'}
-    else{covers[b.id]='https://covers.openlibrary.org/b/isbn/'+isbn+'-M.jpg'}
-    // Get author from works
-    if(data.works&&data.works.length>0){
-      const workKey=data.works[0].key;
-      const workResp=await fetch('https://openlibrary.org'+workKey+'.json');
-      const work=await workResp.json();
-      if(work.authors&&work.authors.length>0){
-        const authorKey=work.authors[0].author?work.authors[0].author.key:work.authors[0].key;
-        if(authorKey){const aResp=await fetch('https://openlibrary.org'+authorKey+'.json');const aData=await aResp.json();if(aData.name)b.author=aData.name}
-      }
+    if(!data.items||data.items.length===0)return;
+    const vol=data.items[0].volumeInfo;
+    if(vol.title)b.title=vol.title;
+    if(vol.authors&&vol.authors.length>0)b.author=vol.authors.join(', ');
+    if(vol.publishedDate){const y=parseInt(vol.publishedDate);if(y)b.year=y}
+    if(vol.pageCount)b.pages=vol.pageCount;
+    if(vol.imageLinks){covers[b.id]=vol.imageLinks.thumbnail?vol.imageLinks.thumbnail.replace('http:','https:'):''}
+    if(vol.categories&&vol.categories.length>0&&!b.category){
+      const cat=vol.categories[0];
+      const match=ALL_GENRES.find(g=>cat.toLowerCase().includes(g.toLowerCase()));
+      if(match)b.category=match;
     }
     b.sortTitle=makeSortTitle(b.title);
-  }catch(e){console.error('ISBN fetch error:',e)}
+  }catch(e){console.error('Google Books fallback error:',e)}
 }
 
 function openLogModal(id){
@@ -3591,14 +3630,14 @@ function openBulkAdd(){
 }
 function closeBulkAdd(){document.getElementById('bulkModal').style.display='none'}
 function previewBulk(){
-  const lines=document.getElementById('bulkTitles').value.split('\\n').map(t=>t.trim()).filter(Boolean);
+  const lines=document.getElementById('bulkTitles').value.split(String.fromCharCode(10)).map(t=>t.trim()).filter(Boolean);
   const existing=new Set(books.map(b=>normalize(b.title)));
   let html='',newC=0,dupeC=0;
   lines.forEach(l=>{const title=l.split(' - ')[0].trim();if(existing.has(normalize(title))){html+='<div style="color:#e24b4a">✗ '+l+'</div>';dupeC++}else{html+='<div style="color:#2ecc71">✓ '+l+'</div>';newC++}});
   document.getElementById('bulkPreview').innerHTML='<strong>'+newC+' new</strong>, '+dupeC+' duplicates<br>'+html;
 }
 function confirmBulk(){
-  const lines=document.getElementById('bulkTitles').value.split('\\n').map(t=>t.trim()).filter(Boolean);
+  const lines=document.getElementById('bulkTitles').value.split(String.fromCharCode(10)).map(t=>t.trim()).filter(Boolean);
   const existing=new Set(books.map(b=>normalize(b.title)));let added=0;
   lines.forEach(l=>{const parts=l.split(' - ');const title=parts[0].trim();const author=(parts[1]||'').trim();
     if(!existing.has(normalize(title))){maxId++;const nb=makeBook(title,maxId);nb.author=author;books.push(nb);existing.add(normalize(title));added++}
