@@ -331,7 +331,7 @@ const PRESS_RATINGS = {
 'backtothefuture':'E','theshining':'B','americanbeauty':'E','therevenanttherevenant':'E',
 'therevenant':'E','madmaxfuryroad':'B','bladerunner':'B','bladerunner2049':'E',
 'apocalypsenow':'B','aclockworkorange':'B','taxidriver':'B','jaws':'B','diehardwithavengeance':'E',
-'diehard':'B','heat':'B','raiders of the lost ark':'E','raidersofthelostark':'E',
+'diehard':'B','heat':'B','raidersofthelostark':'E',
 'terminator2judgmentday':'B','thebreakfastclub':'E','ettheextraterrestrial':'E',
 'oneflewoverthecuckoosnest':'B','2001aspaceodyssey':'B','cityofgod':'E','therewillbeblood':'E',
 'nocountryforoldmen':'B','whiplash':'E','parasite':'B','thedepart':'E','thedeparted':'E',
@@ -347,8 +347,37 @@ const PRESS_RATINGS = {
 'thelighthouse':'E','uncutgems':'E','goodtime':'E','everythingeverywhereallatonce':'E',
 'thegrandbudapesthotel':'E','theroyaltenenbaums':'E','sicario':'E','arrival':'E',
 'prisoners':'E','zodiac':'E','memento':'E','theprestige':'E','dunkirk':'E','tenet':'E',
-'thetruemanshow':'E','thetruman show':'E','thetrumanshow':'E','thebiglebowski':'E',
-'fullmetaljacket':'B','barrylyndon':'E','eyeswideshut':'E'
+'thetruemanshow':'E','thetrumanshow':'E','thebiglebowski':'E',
+'fullmetaljacket':'B','barrylyndon':'E','eyeswideshut':'E',
+'theuntouchables':'E','12angrymen':'E','amadeus':'E','americanhistoryx':'E','theapartment':'E',
+'batman89':'E','batmanbegins':'E','beautifulmind':'E','abeautifulmind':'E','bigfish':'E',
+'thebirds':'E','boogieniights':'E','boogienights':'E','boyhood':'E','braveheart':'E',
+'thebridge ontheriverkwai':'E','thebridgeontheriverkwai':'E','butchcassidyandthesundancekid':'E',
+'casablanca':'E','chinatown':'B','closeencountersofthethirdkind':'E','crouchingtigerhiddendragon':'E',
+'thedeerhnter':'E','thedeerhunter':'E','do therighthing':'E','dotherighthing':'E',
+'edwardscissorhands':'E','thefabelmans':'E','ferrisbuelersdayoff':'E','ferrisbuellersdayoff':'E',
+'findingemo':'E','findingnemo':'E','thefrenchconnection':'E','thefugitive':'E',
+'gettysburg':'E','glengarryglenross':'E','goodwillhunting':'E',
+'gravity':'E','grease':'E','groundhogday':'E','thehateful8':'E',
+'highnoon':'E','hisgirlfiday':'E','hisgirlsfriday':'E','thehuistler':'E','thehustler':'E',
+'itsawonderfulife':'E','itsawonderfullife':'E','jurassicpark':'E',
+'killbillvolume2':'E','thekingsspeech':'E','laconfidential':'E',
+'lawrenceofarabia':'E','lethalweapon':'E','thelifeaquaticwithstevezissou':'E',
+'lost ighway':'E','losthighway':'E','thelordoftheringsthefellowshipofthering':'E',
+'thelordoftheringsthetwotowers':'E','thelordoftheringsthereturnoftheking':'E',
+'manhatan':'E','manhattan':'E','millerscrossing':'E','misery':'E','missionimpossible':'E',
+'montyiythonandtheholygrail':'E','montypythonandtheholygrail':'E',
+'mulhollandr':'E','naturalborkillers':'E','naturalbornkillers':'E',
+'northbynorthwest':'E','thenotebook':'E','ocean11':'E','oceanseleven':'E',
+'panicroom':'E','thepianist':'E','platoon':'E','predator':'E','psycho':'E',
+'ragingrull':'E','ragingbull':'E','ratatoille':'E','ratatouille':'E',
+'rearwindow':'E','robocop':'E','rocky':'E','romancingthestone':'E',
+'rushmore':'E','therulingclass':'E','singininthrain':'E','singinintherain':'E',
+'standbiyme':'E','standbyme':'E','stardust':'E','superbad':'E','superman':'E',
+'terminator':'E','theterminator':'E','thethirdman':'E','thinred line':'E','thethinredline':'E',
+'topgun':'E','topgunmaverick':'E','toystory':'E','toystory2':'E','toystory3':'E',
+'unforgiven':'E','vertigo':'E','wallstreet':'E','walle':'E','westsidesory':'E','westsidestory':'E',
+'thewizardofoz':'E','wizardofoz':'E','withnailand':'E','withnailandi':'E'
 };
 
 const FULL_SEED = [
@@ -663,8 +692,8 @@ function renderTile(f){
   // Press/critic flag
   const pressKey=normalize(f.title);
   const pressEntry=PRESS_RATINGS[pressKey];
-  if(pressEntry){
-    const src=pressEntry==='E'?'Empire':pressEntry==='T'?'Total Film':'Empire & Total Film';
+  if(pressEntry||f.empire5){
+    const src=f.empire5?'Empire':(pressEntry==='E'?'Empire':pressEntry==='T'?'Total Film':'Empire & Total Film');
     badges+='<span class="press-flag" title="'+src+' 5★">★★★★★</span>';
   }
   // High IMDB flag
@@ -756,6 +785,14 @@ function openTileModal(id){
   GENRES.forEach(g=>{
     html+='<button class="'+(f.category===g?'active':'')+'" onclick="setGenre('+f.id+',\\''+g+'\\')">'+g+'</button>';
   });
+  html+='</div>';
+
+  // Empire 5-star toggle
+  const pressKey=normalize(f.title);
+  const isEmpire=PRESS_RATINGS[pressKey]||f.empire5;
+  html+='<label>Empire 5★</label><div style="display:flex;gap:8px;align-items:center;margin:6px 0">';
+  html+='<button class="btn-secondary" style="'+(isEmpire?'background:#c8a400;color:#fff;border-color:#c8a400':'')+'" onclick="toggleEmpire('+f.id+')">'+(isEmpire?'★★★★★ Empire 5-Star':'Not flagged — click to add')+'</button>';
+  html+='<a href="https://www.empireonline.com/movies/reviews/'+f.title.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/-$/,'')+'/" target="_blank" style="font-size:10px;color:#888">Check Empire ↗</a>';
   html+='</div>';
 
   // Watch controls
@@ -882,6 +919,12 @@ function setGenre(id,genre){
 function toggleSoon(id,val){
   const f=films.find(x=>x.id===id);if(!f)return;
   f.watchSoon=val;save();
+}
+function toggleEmpire(id){
+  const f=films.find(x=>x.id===id);if(!f)return;
+  f.empire5=!f.empire5;
+  if(f.empire5){PRESS_RATINGS[normalize(f.title)]='E'}
+  save();openTileModal(id);
 }
 function markWrong(id){
   const f=films.find(x=>x.id===id);if(!f)return;
