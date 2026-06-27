@@ -1600,8 +1600,8 @@ async function checkEmpireRating(f){
   for(const u of urls){
     try{
       const resp=await fetch('https://corsproxy.io/?https://www.empireonline.com/movies/reviews/'+u+'/');
-      if(!resp.ok)continue;
       const html=await resp.text();
+      if(!html||html.length<1000)continue;
       const nextData=html.match(/<script id="__NEXT_DATA__"[^>]*>(.*?)<\\/script>/s);
       if(!nextData)continue;
       const data=JSON.parse(nextData[1]);
