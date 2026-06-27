@@ -1617,7 +1617,7 @@ async function backgroundFetch(){
 
 function makeSlug(title){return title.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')}
 function makeSlugWithThe(title){const s=makeSlug(title);return s.startsWith('the-')?s:'the-'+s}
-function makeRTSlug(title){return title.toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'')}
+function makeRTSlug(title){return title.toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'').replace(/(_s_)/g,'s_')}
 
 async function checkEmpireRating(f){
   const slug=makeSlug(f.title);
@@ -1672,7 +1672,9 @@ async function checkRottenTomatoes(f){
   const slug=makeRTSlug(f.title);
   const slugWithThe=f.title.toLowerCase().startsWith('the ')?slug:'the_'+slug;
   const slugNoThe=slug.replace(/^the_/,'');
+  const dirSlug=f.director?makeRTSlug(f.director.split(',')[0].trim()+'s '+f.title):'';
   const urls=[slug, slugWithThe, slugNoThe];
+  if(dirSlug&&dirSlug!==slug)urls.push(dirSlug);
   for(const u of urls){
     try{
       const resp=await fetch('https://corsproxy.io/?https://www.rottentomatoes.com/m/'+u);
