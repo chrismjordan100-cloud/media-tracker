@@ -690,19 +690,22 @@ function renderTile(f){
   if(f.watchSoon)badges+='<span class="soon-badge">⚡</span>';
   // IMDB score
   if(f.imdbRating)badges+='<span class="score-badge">'+f.imdbRating+'</span>';
-  // Press/critic flag — verified from Empire, Total Film, and Rotten Tomatoes
+  // Press/critic flag — hardcoded list + live verified data
+  const pressKey=normalize(f.title);
+  const pressEntry=PRESS_RATINGS[pressKey];
   const hasEmpire5=f.empire5;
   const hasTF5=f.totalFilm5;
   const hasRT90=f.rt90;
-  const pressKey=normalize(f.title);
-  const pressEntry=PRESS_RATINGS[pressKey];
-  if(hasEmpire5||hasTF5||hasRT90||(pressEntry&&!f.empireChecked&&!f.totalFilmChecked)){
+  if(pressEntry||hasEmpire5||hasTF5||hasRT90){
     let src='';
     if(hasEmpire5&&hasTF5)src='Empire & Total Film 5★';
     else if(hasEmpire5)src='Empire 5★';
     else if(hasTF5)src='Total Film 5★';
     else if(hasRT90)src='RT '+f.rtScore+'%';
-    else src='Unverified';
+    else if(pressEntry==='B')src='Empire & Total Film 5★';
+    else if(pressEntry==='E')src='Empire 5★';
+    else if(pressEntry==='T')src='Total Film 5★';
+    else src='5★';
     badges+='<span class="press-flag" title="'+src+'">★★★★★</span>';
   }
   // High IMDB flag
