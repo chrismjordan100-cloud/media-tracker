@@ -275,6 +275,7 @@ body{background:#0f0f0f;color:#eee;font-family:-apple-system,BlinkMacSystemFont,
 <button onclick="openHistory()" title="Viewing History">📅 History</button>
 <button onclick="reimportCovers()" title="Re-fetch all non-confirmed covers">🖼 Reimport Covers</button>
 <button onclick="fetchCertificates()" title="Fetch UK certificates and runtimes">📜 Fetch Certs</button>
+<button onclick="recheckAllEmpire()" title="Re-check all Empire 5-star ratings from empireonline.com">★ Check Empire</button>
 <button onclick="openDuplicateFinder()" title="Find duplicate titles">🔍 Duplicates</button>
 <button id="deleteToggle" onclick="toggleDeleteMode()" title="Delete Mode">🗑 Delete</button>
 <button id="deleteFiltered" style="display:none;color:#e24b4a" onclick="deleteAllFiltered()" title="Delete All Filtered">🗑 Delete Filtered</button>
@@ -689,12 +690,12 @@ function renderTile(f){
   if(f.watchSoon)badges+='<span class="soon-badge">⚡</span>';
   // IMDB score
   if(f.imdbRating)badges+='<span class="score-badge">'+f.imdbRating+'</span>';
-  // Press/critic flag
+  // Press/critic flag — only shows if verified from Empire website
   const pressKey=normalize(f.title);
   const pressEntry=PRESS_RATINGS[pressKey];
-  if(pressEntry||f.empire5){
-    const src=f.empire5?'Empire':(pressEntry==='E'?'Empire':pressEntry==='T'?'Total Film':'Empire & Total Film');
-    badges+='<span class="press-flag" title="'+src+' 5★">★★★★★</span>';
+  if(f.empire5||(pressEntry&&!f.empireChecked)){
+    const src=f.empire5?'Empire 5★ (verified)':(pressEntry==='E'?'Empire':'Empire & Total Film');
+    badges+='<span class="press-flag" title="'+src+'">★★★★★</span>';
   }
   // High IMDB flag
   if(parseFloat(f.imdbRating)>=8.5)badges+='<span class="imdb-flag" title="IMDB 8.5+">🏆</span>';
@@ -789,10 +790,19 @@ function openTileModal(id){
 
   // Empire 5-star toggle
   const pressKey=normalize(f.title);
-  const isEmpire=PRESS_RATINGS[pressKey]||f.empire5;
-  html+='<label>Empire 5★</label><div style="display:flex;gap:8px;align-items:center;margin:6px 0">';
-  html+='<button class="btn-secondary" style="'+(isEmpire?'background:#c8a400;color:#fff;border-color:#c8a400':'')+'" onclick="toggleEmpire('+f.id+')">'+(isEmpire?'★★★★★ Empire 5-Star':'Not flagged — click to add')+'</button>';
-  html+='<a href="https://www.empireonline.com/movies/reviews/'+f.title.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/-$/,'')+'/" target="_blank" style="font-size:10px;color:#888">Check Empire ↗</a>';
+  const isEmpire=f.empire5;
+  const empireRating=f.empireRating;
+  html+='<label>Empire Rating</label><div style="display:flex;gap:8px;align-items:center;margin:6px 0">';
+  if(f.empireChecked){
+    if(empireRating){
+      html+='<span style="font-size:12px;color:'+(empireRating===5?'#c8a400':'#888')+'">Empire: '+'★'.repeat(empireRating)+'☆'.repeat(5-empireRating)+' ('+empireRating+'/5)</span>';
+    }else{
+      html+='<span style="font-size:12px;color:#888">Not found on Empire</span>';
+    }
+  }else{
+    html+='<span style="font-size:12px;color:#888">Not checked yet</span>';
+  }
+  html+='<button class="btn-secondary" style="font-size:10px;padding:2px 6px" onclick="recheckEmpireSingle('+f.id+')">↻ Check</button>';
   html+='</div>';
 
   // Watch controls
@@ -1571,7 +1581,7 @@ async function refreshMetadata(id){
 
 async function backgroundFetch(){
   const toFetch=films.filter(f=>!posters[f.id]&&!f.posterConfirmed);
-  if(toFetch.length===0)return;
+  if(toFetch.length===0){checkEmpireRatings();return}
   fetchingCovers=true;
   for(const f of toFetch){
     await fetchMetadataForFilm(f,'');
@@ -1579,6 +1589,62 @@ async function backgroundFetch(){
   }
   fetchingCovers=false;
   save();renderGrid();
+  checkEmpireRatings();
+}
+
+function makeSlug(title){return title.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')}
+
+async function checkEmpireRating(f){
+  const slug=makeSlug(f.title);
+  const urls=[slug+'-review',slug.replace(/-the$/,'')+'-review','the-'+slug+'-review'];
+  for(const u of urls){
+    try{
+      const resp=await fetch('https://corsproxy.io/?https://www.empireonline.com/movies/reviews/'+u+'/');
+      if(!resp.ok)continue;
+      const html=await resp.text();
+      const nextData=html.match(/<script id="__NEXT_DATA__"[^>]*>(.*?)<\\/script>/s);
+      if(!nextData)continue;
+      const data=JSON.parse(nextData[1]);
+      const review=data.props?.pageProps?.queryData?.getReviewByFurl;
+      if(!review)continue;
+      const rating=parseInt(review.rating);
+      if(!isNaN(rating)){
+        f.empireRating=rating;
+        if(rating===5){f.empire5=true;PRESS_RATINGS[normalize(f.title)]='E'}
+        else{f.empire5=false;delete PRESS_RATINGS[normalize(f.title)]}
+        f.empireChecked=true;
+        return rating;
+      }
+    }catch(e){}
+  }
+  f.empireChecked=true;
+  return null;
+}
+
+async function checkEmpireRatings(){
+  const toCheck=films.filter(f=>!f.empireChecked&&f.mediaType==='film');
+  if(toCheck.length===0)return;
+  let done=0;
+  for(const f of toCheck){
+    done++;
+    document.getElementById('statsBar').innerHTML='<span style="color:#c8a400">★ Checking Empire ratings... '+done+'/'+toCheck.length+'</span>';
+    await checkEmpireRating(f);
+    await new Promise(r=>setTimeout(r,500));
+  }
+  save();renderGrid();
+}
+
+async function recheckAllEmpire(){
+  films.forEach(f=>{f.empireChecked=false;f.empire5=false;f.empireRating=null});
+  save();
+  await checkEmpireRatings();
+}
+
+async function recheckEmpireSingle(id){
+  const f=films.find(x=>x.id===id);if(!f)return;
+  f.empireChecked=false;f.empire5=false;f.empireRating=null;
+  await checkEmpireRating(f);
+  save();renderGrid();openTileModal(id);
 }
 
 async function reimportCovers(){
