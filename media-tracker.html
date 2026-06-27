@@ -690,11 +690,17 @@ function renderTile(f){
   if(f.watchSoon)badges+='<span class="soon-badge">⚡</span>';
   // IMDB score
   if(f.imdbRating)badges+='<span class="score-badge">'+f.imdbRating+'</span>';
-  // Press/critic flag — only shows if verified from Empire website
+  // Press/critic flag — verified from Empire and Total Film websites
   const pressKey=normalize(f.title);
   const pressEntry=PRESS_RATINGS[pressKey];
-  if(f.empire5||(pressEntry&&!f.empireChecked)){
-    const src=f.empire5?'Empire 5★ (verified)':(pressEntry==='E'?'Empire':'Empire & Total Film');
+  const hasEmpire5=f.empire5;
+  const hasTF5=f.totalFilm5;
+  if(hasEmpire5||hasTF5||(pressEntry&&!f.empireChecked)){
+    let src='';
+    if(hasEmpire5&&hasTF5)src='Empire & Total Film 5★';
+    else if(hasEmpire5)src='Empire 5★';
+    else if(hasTF5)src='Total Film 5★';
+    else src=pressEntry==='E'?'Empire (unverified)':pressEntry==='T'?'Total Film (unverified)':'Empire & Total Film (unverified)';
     badges+='<span class="press-flag" title="'+src+'">★★★★★</span>';
   }
   // High IMDB flag
@@ -788,19 +794,25 @@ function openTileModal(id){
   });
   html+='</div>';
 
-  // Empire 5-star toggle
-  const pressKey=normalize(f.title);
-  const isEmpire=f.empire5;
-  const empireRating=f.empireRating;
-  html+='<label>Empire Rating</label><div style="display:flex;gap:8px;align-items:center;margin:6px 0">';
+  // Empire & Total Film ratings
+  html+='<label>Press Ratings</label><div style="display:flex;gap:16px;align-items:center;margin:6px 0;flex-wrap:wrap">';
   if(f.empireChecked){
-    if(empireRating){
-      html+='<span style="font-size:12px;color:'+(empireRating===5?'#c8a400':'#888')+'">Empire: '+'★'.repeat(empireRating)+'☆'.repeat(5-empireRating)+' ('+empireRating+'/5)</span>';
+    if(f.empireRating!=null){
+      html+='<span style="font-size:12px;color:'+(f.empireRating===5?'#c8a400':'#888')+'">Empire: '+'★'.repeat(f.empireRating)+'☆'.repeat(5-f.empireRating)+'</span>';
     }else{
-      html+='<span style="font-size:12px;color:#888">Not found on Empire</span>';
+      html+='<span style="font-size:12px;color:#555">Empire: not found</span>';
     }
   }else{
-    html+='<span style="font-size:12px;color:#888">Not checked yet</span>';
+    html+='<span style="font-size:12px;color:#555">Empire: unchecked</span>';
+  }
+  if(f.totalFilmChecked){
+    if(f.totalFilmRating!=null){
+      html+='<span style="font-size:12px;color:'+(f.totalFilmRating===5?'#c8a400':'#888')+'">Total Film: '+'★'.repeat(f.totalFilmRating)+'☆'.repeat(5-f.totalFilmRating)+'</span>';
+    }else{
+      html+='<span style="font-size:12px;color:#555">Total Film: not found</span>';
+    }
+  }else{
+    html+='<span style="font-size:12px;color:#555">Total Film: unchecked</span>';
   }
   html+='<button class="btn-secondary" style="font-size:10px;padding:2px 6px" onclick="recheckEmpireSingle('+f.id+')">↻ Check</button>';
   html+='</div>';
@@ -1593,6 +1605,7 @@ async function backgroundFetch(){
 }
 
 function makeSlug(title){return title.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')}
+function makeSlugWithThe(title){const s=makeSlug(title);return s.startsWith('the-')?s:'the-'+s}
 
 async function checkEmpireRating(f){
   const slug=makeSlug(f.title);
@@ -1610,8 +1623,7 @@ async function checkEmpireRating(f){
       const rating=parseInt(review.rating);
       if(!isNaN(rating)){
         f.empireRating=rating;
-        if(rating===5){f.empire5=true;PRESS_RATINGS[normalize(f.title)]='E'}
-        else{f.empire5=false;delete PRESS_RATINGS[normalize(f.title)]}
+        f.empire5=(rating===5);
         f.empireChecked=true;
         return rating;
       }
@@ -1621,21 +1633,54 @@ async function checkEmpireRating(f){
   return null;
 }
 
+async function checkTotalFilmRating(f){
+  const slug=makeSlug(f.title);
+  const urls=[slug, makeSlugWithThe(f.title), slug.replace(/^the-/,'')];
+  for(const u of urls){
+    try{
+      const resp=await fetch('https://corsproxy.io/?https://www.totalfilm.com/reviews/'+u);
+      const html=await resp.text();
+      if(!html||html.length<1000)continue;
+      const ratingMatch=html.match(/"ratingValue"\s*:\s*"?(\d)"?/);
+      if(!ratingMatch)continue;
+      const rating=parseInt(ratingMatch[1]);
+      if(!isNaN(rating)){
+        f.totalFilmRating=rating;
+        f.totalFilm5=(rating===5);
+        f.totalFilmChecked=true;
+        return rating;
+      }
+    }catch(e){}
+  }
+  f.totalFilmChecked=true;
+  return null;
+}
+
 async function checkEmpireRatings(){
-  const toCheck=films.filter(f=>!f.empireChecked&&f.mediaType==='film');
+  const toCheck=films.filter(f=>(!f.empireChecked||!f.totalFilmChecked)&&f.mediaType==='film');
   if(toCheck.length===0)return;
   let done=0;
   for(const f of toCheck){
     done++;
-    document.getElementById('statsBar').innerHTML='<span style="color:#c8a400">★ Checking Empire ratings... '+done+'/'+toCheck.length+'</span>';
-    await checkEmpireRating(f);
-    await new Promise(r=>setTimeout(r,500));
+    document.getElementById('statsBar').innerHTML='<span style="color:#c8a400">★ Checking ratings... '+done+'/'+toCheck.length+' — '+f.title+'</span>';
+    if(!f.empireChecked)await checkEmpireRating(f);
+    await new Promise(r=>setTimeout(r,400));
+    if(!f.totalFilmChecked)await checkTotalFilmRating(f);
+    await new Promise(r=>setTimeout(r,400));
   }
+  // Update PRESS_RATINGS based on results
+  films.forEach(f=>{
+    const key=normalize(f.title);
+    if(f.empire5&&f.totalFilm5)PRESS_RATINGS[key]='B';
+    else if(f.empire5)PRESS_RATINGS[key]='E';
+    else if(f.totalFilm5)PRESS_RATINGS[key]='T';
+    else delete PRESS_RATINGS[key];
+  });
   save();renderGrid();
 }
 
 async function recheckAllEmpire(){
-  films.forEach(f=>{f.empireChecked=false;f.empire5=false;f.empireRating=null});
+  films.forEach(f=>{f.empireChecked=false;f.empire5=false;f.empireRating=null;f.totalFilmChecked=false;f.totalFilm5=false;f.totalFilmRating=null});
   save();
   await checkEmpireRatings();
 }
@@ -1643,7 +1688,14 @@ async function recheckAllEmpire(){
 async function recheckEmpireSingle(id){
   const f=films.find(x=>x.id===id);if(!f)return;
   f.empireChecked=false;f.empire5=false;f.empireRating=null;
+  f.totalFilmChecked=false;f.totalFilm5=false;f.totalFilmRating=null;
   await checkEmpireRating(f);
+  await checkTotalFilmRating(f);
+  const key=normalize(f.title);
+  if(f.empire5&&f.totalFilm5)PRESS_RATINGS[key]='B';
+  else if(f.empire5)PRESS_RATINGS[key]='E';
+  else if(f.totalFilm5)PRESS_RATINGS[key]='T';
+  else delete PRESS_RATINGS[key];
   save();renderGrid();openTileModal(id);
 }
 
