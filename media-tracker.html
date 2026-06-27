@@ -378,7 +378,16 @@ const PRESS_RATINGS = {
 'terminator':'E','theterminator':'E','thethirdman':'E','thinred line':'E','thethinredline':'E',
 'topgun':'E','topgunmaverick':'E','toystory':'E','toystory2':'E','toystory3':'E',
 'unforgiven':'E','vertigo':'E','wallstreet':'E','walle':'E','westsidesory':'E','westsidestory':'E',
-'thewizardofoz':'E','wizardofoz':'E','withnailand':'E','withnailandi':'E'
+'thewizardofoz':'E','wizardofoz':'E','withnailand':'E','withnailandi':'E',
+'breakingbad':'R','thesopranos':'R','thewire':'R','chernobyl':'R','truedetective':'R',
+'bandofbrothers':'R','gameofthrones':'R','thewestwing':'R','fargo':'R',
+'betterallsaul':'R','bettercallsaul':'R','fleabag':'R','succesion':'R','succession':'R',
+'theoffice':'R','theofficeuk':'R','blackmirror':'R','thecrown':'R',
+'ozark':'R','mindhunter':'R','theamericans':'R','mrrobot':'R',
+'madmen':'R','thehandmaidstale':'R','houseofcards':'R','narcos':'R',
+'peepshow':'R','thebearon':'R','thebear':'R','shogun':'R',
+'severance':'R','thelastofus':'R','whitelotos':'R','thewhitelotus':'R',
+'davidbyrnesamericanutopia':'R','americanutopia':'R'
 };
 
 const FULL_SEED = [
@@ -705,6 +714,7 @@ function renderTile(f){
     else if(pressEntry==='B')src='Empire & Total Film 5★';
     else if(pressEntry==='E')src='Empire 5★';
     else if(pressEntry==='T')src='Total Film 5★';
+    else if(pressEntry==='R')src='RT 90%+';
     else src='5★';
     badges+='<span class="press-flag" title="'+src+'">★★★★★</span>';
   }
