@@ -690,16 +690,18 @@ function renderTile(f){
   if(f.watchSoon)badges+='<span class="soon-badge">⚡</span>';
   // IMDB score
   if(f.imdbRating)badges+='<span class="score-badge">'+f.imdbRating+'</span>';
-  // Press/critic flag — verified from Empire and Total Film websites
+  // Press/critic flag — verified from Empire, Total Film, and Rotten Tomatoes
   const hasEmpire5=f.empire5;
   const hasTF5=f.totalFilm5;
+  const hasRT90=f.rt90;
   const pressKey=normalize(f.title);
   const pressEntry=PRESS_RATINGS[pressKey];
-  if(hasEmpire5||hasTF5||(pressEntry&&!f.empireChecked&&!f.totalFilmChecked)){
+  if(hasEmpire5||hasTF5||hasRT90||(pressEntry&&!f.empireChecked&&!f.totalFilmChecked)){
     let src='';
     if(hasEmpire5&&hasTF5)src='Empire & Total Film 5★';
     else if(hasEmpire5)src='Empire 5★';
     else if(hasTF5)src='Total Film 5★';
+    else if(hasRT90)src='RT '+f.rtScore+'%';
     else src='Unverified';
     badges+='<span class="press-flag" title="'+src+'">★★★★★</span>';
   }
@@ -794,7 +796,7 @@ function openTileModal(id){
   });
   html+='</div>';
 
-  // Empire & Total Film ratings
+  // Empire, Total Film & RT ratings
   html+='<label>Press Ratings</label><div style="display:flex;gap:16px;align-items:center;margin:6px 0;flex-wrap:wrap">';
   if(f.empireChecked){
     if(f.empireRating!=null){
@@ -813,6 +815,15 @@ function openTileModal(id){
     }
   }else{
     html+='<span style="font-size:12px;color:#555">Total Film: unchecked</span>';
+  }
+  if(f.rtChecked){
+    if(f.rtScore!=null){
+      html+='<span style="font-size:12px;color:'+(f.rtScore>=90?'#c8a400':'#888')+'">RT: '+f.rtScore+'%'+(f.rtScore>=90?' 🍅':'')+'</span>';
+    }else{
+      html+='<span style="font-size:12px;color:#555">RT: not found</span>';
+    }
+  }else{
+    html+='<span style="font-size:12px;color:#555">RT: unchecked</span>';
   }
   html+='<button class="btn-secondary" style="font-size:10px;padding:2px 6px" onclick="recheckEmpireSingle('+f.id+')">↻ Check</button>';
   html+='</div>';
@@ -1606,6 +1617,7 @@ async function backgroundFetch(){
 
 function makeSlug(title){return title.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')}
 function makeSlugWithThe(title){const s=makeSlug(title);return s.startsWith('the-')?s:'the-'+s}
+function makeRTSlug(title){return title.toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'')}
 
 async function checkEmpireRating(f){
   const slug=makeSlug(f.title);
@@ -1656,17 +1668,41 @@ async function checkTotalFilmRating(f){
   return null;
 }
 
+async function checkRottenTomatoes(f){
+  const slug=makeRTSlug(f.title);
+  const slugWithThe=f.title.toLowerCase().startsWith('the ')?slug:'the_'+slug;
+  const slugNoThe=slug.replace(/^the_/,'');
+  const urls=[slug, slugWithThe, slugNoThe];
+  for(const u of urls){
+    try{
+      const resp=await fetch('https://corsproxy.io/?https://www.rottentomatoes.com/m/'+u);
+      const html=await resp.text();
+      if(!html||html.length<1000)continue;
+      const scoreMatch=html.match(/"criticsScore":\{[^}]*"score":"(\d+)"/);
+      if(!scoreMatch)continue;
+      const score=parseInt(scoreMatch[1]);
+      if(!isNaN(score)){
+        f.rtScore=score;
+        f.rt90=(score>=90);
+        f.rtChecked=true;
+        return score;
+      }
+    }catch(e){}
+  }
+  f.rtChecked=true;
+  return null;
+}
+
 async function checkEmpireRatings(){
-  const toCheck=films.filter(f=>(!f.empireChecked||!f.totalFilmChecked)&&f.mediaType==='film');
+  const toCheck=films.filter(f=>(!f.empireChecked||!f.totalFilmChecked||!f.rtChecked)&&f.mediaType==='film');
   if(toCheck.length===0)return;
   let done=0;
   for(const f of toCheck){
     done++;
     document.getElementById('statsBar').innerHTML='<span style="color:#c8a400">★ Checking ratings... '+done+'/'+toCheck.length+' — '+f.title+'</span>';
-    if(!f.empireChecked)await checkEmpireRating(f);
-    await new Promise(r=>setTimeout(r,400));
-    if(!f.totalFilmChecked)await checkTotalFilmRating(f);
-    await new Promise(r=>setTimeout(r,400));
+    if(!f.empireChecked){await checkEmpireRating(f);await new Promise(r=>setTimeout(r,400))}
+    if(!f.totalFilmChecked){await checkTotalFilmRating(f);await new Promise(r=>setTimeout(r,400))}
+    if(!f.rtChecked){await checkRottenTomatoes(f);await new Promise(r=>setTimeout(r,400))}
   }
   // Update PRESS_RATINGS based on results
   films.forEach(f=>{
@@ -1680,7 +1716,7 @@ async function checkEmpireRatings(){
 }
 
 async function recheckAllEmpire(){
-  films.forEach(f=>{f.empireChecked=false;f.empire5=false;f.empireRating=null;f.totalFilmChecked=false;f.totalFilm5=false;f.totalFilmRating=null});
+  films.forEach(f=>{f.empireChecked=false;f.empire5=false;f.empireRating=null;f.totalFilmChecked=false;f.totalFilm5=false;f.totalFilmRating=null;f.rtChecked=false;f.rtScore=null;f.rt90=false});
   save();
   await checkEmpireRatings();
 }
@@ -1689,8 +1725,10 @@ async function recheckEmpireSingle(id){
   const f=films.find(x=>x.id===id);if(!f)return;
   f.empireChecked=false;f.empire5=false;f.empireRating=null;
   f.totalFilmChecked=false;f.totalFilm5=false;f.totalFilmRating=null;
+  f.rtChecked=false;f.rtScore=null;f.rt90=false;
   await checkEmpireRating(f);
   await checkTotalFilmRating(f);
+  await checkRottenTomatoes(f);
   const key=normalize(f.title);
   if(f.empire5&&f.totalFilm5)PRESS_RATINGS[key]='B';
   else if(f.empire5)PRESS_RATINGS[key]='E';
