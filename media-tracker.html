@@ -313,6 +313,7 @@ body{background:#0f0f0f;color:#eee;font-family:-apple-system,BlinkMacSystemFont,
 <div class="modal-overlay" id="soonModal"><div class="modal" id="soonModalContent"></div></div>
 <div class="modal-overlay" id="historyModal"><div class="modal" id="historyModalContent" style="max-width:700px"></div></div>
 <div class="modal-overlay" id="ambiguityModal"><div class="modal" id="ambiguityModalContent"></div></div>
+<div class="modal-overlay" id="reorderModal"><div class="modal" id="reorderModalContent" style="max-width:500px"></div></div>
 
 <script>
 const TMDB_TOKEN = 'eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJlOTFkZTMyZjkxMWRiOTdkZjI3ODk5MTAwMmU5NjQxZCIsIm5iZiI6MTc3ODk3MDIxMy42MTksInN1YiI6IjZhMDhlZTY1ZmMzNzFjMzA4NGNmYzZhNSIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.M0rhL5CdYVczmRFDTS-MaxRN8S1Ov4uav_FWE8imEQM';
@@ -565,11 +566,20 @@ function sortItems(items){
     const tierOrder=t=>t.goatTier>0?4-t.goatTier:t.rating==='amazing'?4:t.rating==='good'?5:t.rating==='meh'?6:t.rating==='dislike'?7:t.rating==='neveragain'?8:t.watched?9:10;
     const ta=tierOrder(a),tb=tierOrder(b);
     if(ta!==tb)return ta-tb;
-    // Within ★★★ GOAT, group films first then TV/comedy
+    // Within ★★★ GOAT, use manual order if set
     if(a.goatTier===3&&b.goatTier===3){
       const aIsTV=(a.mediaType==='tv'||a.mediaType==='comedy')?1:0;
       const bIsTV=(b.mediaType==='tv'||b.mediaType==='comedy')?1:0;
       if(aIsTV!==bIsTV)return aIsTV-bIsTV;
+      // Manual order within subgroup
+      const orderKey=aIsTV?'goat3OrderTV':'goat3OrderFilm';
+      const order=JSON.parse(localStorage.getItem(orderKey)||'[]');
+      if(order.length>0){
+        const ai=order.indexOf(a.id),bi=order.indexOf(b.id);
+        const aPos=ai>=0?ai:9999;
+        const bPos=bi>=0?bi:9999;
+        if(aPos!==bPos)return aPos-bPos;
+      }
     }
     return(a.sortTitle||'').localeCompare(b.sortTitle||'');
   });
@@ -631,6 +641,57 @@ function updateStats(){
   document.getElementById('statsBar').innerHTML=html;
 }
 
+function openReorderModal(subType){
+  const orderKey=subType==='tv'?'goat3OrderTV':'goat3OrderFilm';
+  const isTV=subType==='tv';
+  const goat3=films.filter(f=>f.goatTier===3&&((isTV&&(f.mediaType==='tv'||f.mediaType==='comedy'))||(!isTV&&f.mediaType!=='tv'&&f.mediaType!=='comedy')));
+  const order=JSON.parse(localStorage.getItem(orderKey)||'[]');
+  goat3.sort((a,b)=>{const ai=order.indexOf(a.id),bi=order.indexOf(b.id);return(ai>=0?ai:9999)-(bi>=0?bi:9999)});
+
+  let html='<button class="modal-close" onclick="closeReorderModal()">&times;</button>';
+  html+='<h2>Reorder ★★★ GOAT '+(isTV?'TV & Comedy':'Films')+'</h2>';
+  html+='<p style="font-size:11px;color:#888;margin-bottom:12px">Drag items to reorder. Top = #1.</p>';
+  html+='<div id="reorderList" style="display:flex;flex-direction:column;gap:4px">';
+  goat3.forEach((f,i)=>{
+    const poster=posters[f.id];
+    html+='<div class="reorder-item" draggable="true" data-id="'+f.id+'" style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:#222;border-radius:6px;border:1px solid #333;cursor:grab;user-select:none">';
+    html+='<span style="color:#555;font-size:11px;min-width:20px">'+(i+1)+'</span>';
+    if(poster)html+='<img src="'+poster+'" style="width:30px;height:45px;object-fit:cover;border-radius:3px">';
+    html+='<span style="font-size:12px;font-weight:600;flex:1">'+f.title+'</span>';
+    html+='<span style="font-size:10px;color:#888">'+(f.year||'')+'</span>';
+    html+='</div>';
+  });
+  html+='</div>';
+  html+='<div class="modal-actions" style="margin-top:12px"><button class="btn-primary" onclick="saveReorder(\\''+subType+'\\')">Save Order</button><button class="btn-secondary" onclick="closeReorderModal()">Cancel</button></div>';
+  document.getElementById('reorderModalContent').innerHTML=html;
+  document.getElementById('reorderModal').style.display='block';
+  initDragReorder();
+}
+function closeReorderModal(){document.getElementById('reorderModal').style.display='none'}
+function initDragReorder(){
+  const list=document.getElementById('reorderList');
+  let dragItem=null;
+  list.querySelectorAll('.reorder-item').forEach(item=>{
+    item.addEventListener('dragstart',e=>{dragItem=item;item.style.opacity='0.5'});
+    item.addEventListener('dragend',e=>{item.style.opacity='1';dragItem=null;updateReorderNumbers()});
+    item.addEventListener('dragover',e=>{e.preventDefault()});
+    item.addEventListener('dragenter',e=>{e.preventDefault();if(item!==dragItem&&dragItem){const rect=item.getBoundingClientRect();const mid=rect.top+rect.height/2;if(e.clientY<mid){list.insertBefore(dragItem,item)}else{list.insertBefore(dragItem,item.nextSibling)}}});
+  });
+}
+function updateReorderNumbers(){
+  const items=document.querySelectorAll('#reorderList .reorder-item');
+  items.forEach((item,i)=>{item.querySelector('span').textContent=i+1});
+}
+function saveReorder(subType){
+  const orderKey=subType==='tv'?'goat3OrderTV':'goat3OrderFilm';
+  const items=document.querySelectorAll('#reorderList .reorder-item');
+  const order=[];
+  items.forEach(item=>{order.push(parseInt(item.dataset.id))});
+  localStorage.setItem(orderKey,JSON.stringify(order));
+  closeReorderModal();
+  renderGrid();
+}
+
 function renderGrid(){
   if(fetchingCovers)return;
   const filtered=getFiltered();
@@ -660,7 +721,10 @@ function renderGrid(){
         if(lastSection!=='')html+='</div>';
         sectionIdx++;
         const collapsed=collapsedSections.has(sectionLabel);
-        html+='<div class="section-header '+sec.cls+(collapsed?' collapsed':'')+'" onclick="toggleSection(this,\\'sec'+sectionIdx+'\\',\\''+sectionLabel.replace(/'/g,"")+'\\')"><span class="collapse-icon">▼</span> '+sectionLabel+'</div>';
+        const isGoat3=f.goatTier===3;
+        const subType=(f.mediaType==='tv'||f.mediaType==='comedy')?'tv':'film';
+        const reorderBtn=isGoat3?'<button style="float:right;font-size:9px;padding:2px 8px;background:#333;border:1px solid #555;border-radius:4px;color:#ccc;cursor:pointer" onclick="event.stopPropagation();openReorderModal(\\''+subType+'\\')">↕ Reorder</button>':'';
+        html+='<div class="section-header '+sec.cls+(collapsed?' collapsed':'')+'" onclick="toggleSection(this,\\'sec'+sectionIdx+'\\',\\''+sectionLabel.replace(/'/g,"")+'\\')"><span class="collapse-icon">▼</span> '+sectionLabel+reorderBtn+'</div>';
         html+='<div class="section-tiles'+(collapsed?' hidden':'')+'" id="sec'+sectionIdx+'">';
         lastSection=sectionLabel;
       }
