@@ -705,6 +705,7 @@ function renderGrid(){
   // Check if all visible are unplayed for delete filtered button
   const allUnplayed=sorted.length>0&&sorted.every(f=>!f.watched&&f.goatTier===0);
   document.getElementById('deleteFiltered').style.display=allUnplayed?'inline-block':'none';
+  let goat3Rank=0;
 
   sorted.forEach(f=>{
     if(sort==='tier'){
@@ -727,9 +728,11 @@ function renderGrid(){
         html+='<div class="section-header '+sec.cls+(collapsed?' collapsed':'')+'" onclick="toggleSection(this,\\'sec'+sectionIdx+'\\',\\''+sectionLabel.replace(/'/g,"")+'\\')"><span class="collapse-icon">▼</span> '+sectionLabel+reorderBtn+'</div>';
         html+='<div class="section-tiles'+(collapsed?' hidden':'')+'" id="sec'+sectionIdx+'">';
         lastSection=sectionLabel;
+        goat3Rank=0;
       }
     }
-    html+=renderTile(f);
+    if(f.goatTier===3)goat3Rank++;
+    html+=renderTile(f,f.goatTier===3?goat3Rank:0);
   });
   if(lastSection!=='')html+='</div>';
   grid.innerHTML=html;
@@ -747,13 +750,16 @@ function toggleSection(header,secId,label){
   else collapsedSections.delete(label);
 }
 
-function renderTile(f){
+function renderTile(f,rank){
   const poster=posters[f.id];
   const watchCount=getWatchCount(f);
   let imgHtml=poster?'<img class="tile-img" src="'+poster+'" alt="'+f.title+'" loading="lazy">':'<div class="tile-placeholder">'+f.title+'</div>';
   let badges='';
-  // GOAT banner
-  if(f.goatTier>0)badges+='<div class="goat-banner">'+'★'.repeat(f.goatTier)+' GOAT</div>';
+  // GOAT banner with rank
+  if(f.goatTier>0){
+    const rankStr=(f.goatTier===3&&rank)?'<span style="font-size:14px;font-weight:900;margin-right:4px">#'+rank+'</span>':'';
+    badges+='<div class="goat-banner">'+rankStr+'★'.repeat(f.goatTier)+' GOAT</div>';
+  }
   // Rating pill
   if(f.goatTier===0&&f.rating)badges+='<span class="rating-pill '+f.rating+'">'+RATING_LABELS[f.rating]+'</span>';
   else if(f.watched&&!f.rating&&f.goatTier===0)badges+='<span class="rating-pill rateme">Rate Me</span>';
