@@ -757,7 +757,7 @@ function renderTile(f,rank){
   let badges='';
   // GOAT banner with rank
   if(f.goatTier>0){
-    const rankStr=(f.goatTier===3&&rank)?'<span style="position:absolute;top:-8px;right:-8px;width:28px;height:28px;background:#fff;color:#e24b4a;font-size:13px;font-weight:900;border-radius:50%;display:flex;align-items:center;justify-content:center;z-index:10;box-shadow:0 2px 6px rgba(0,0,0,0.4);border:2px solid #e24b4a">'+rank+'</span>':'';
+    const rankStr=(f.goatTier===3&&rank)?'<span style="position:absolute;top:-4px;right:-4px;width:28px;height:28px;background:#fff;color:#e24b4a;font-size:13px;font-weight:900;border-radius:50%;display:flex;align-items:center;justify-content:center;z-index:10;box-shadow:0 2px 6px rgba(0,0,0,0.4);border:2px solid #e24b4a">'+rank+'</span>':'';
     badges+=rankStr;
     badges+='<div class="goat-banner">'+'★'.repeat(f.goatTier)+' GOAT</div>';
   }
