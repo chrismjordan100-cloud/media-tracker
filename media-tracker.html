@@ -196,9 +196,9 @@ body{background:#0f0f0f;color:#eee;font-family:-apple-system,BlinkMacSystemFont,
 .section-header.amazing{color:#1d9e75}.section-header.good{color:#378add}.section-header.meh{color:#888}
 .section-header.dislike{color:#d85a30}.section-header.neveragain{color:#e24b4a}.section-header.unrated{color:#e24b4a}
 .section-header.unplayed{color:#666}
-.tile{position:relative;cursor:pointer;border-radius:6px;overflow:hidden;background:#1a1a1a;transition:transform .15s}
+.tile{position:relative;cursor:pointer;border-radius:6px;overflow:visible;background:#1a1a1a;transition:transform .15s}
 .tile:hover{transform:scale(1.03)}
-.tile-img-wrap{position:relative;width:100%;padding-top:150%;overflow:hidden}
+.tile-img-wrap{position:relative;width:100%;padding-top:150%;overflow:hidden;border-radius:6px 6px 0 0}
 .tile-img{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover}
 .tile-placeholder{position:absolute;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;text-align:center;padding:8px;font-size:11px;color:#666;background:#1a1a1a}
 .tile-info{padding:6px 8px}
@@ -757,8 +757,9 @@ function renderTile(f,rank){
   let badges='';
   // GOAT banner with rank
   if(f.goatTier>0){
-    const rankStr=(f.goatTier===3&&rank)?'<span style="font-size:16px;font-weight:900;color:#e24b4a;margin-right:4px">#'+rank+'</span>':'';
-    badges+='<div class="goat-banner">'+rankStr+'★'.repeat(f.goatTier)+' GOAT</div>';
+    const rankStr=(f.goatTier===3&&rank)?'<span style="position:absolute;top:-10px;left:-10px;width:28px;height:28px;background:#e67e22;color:#fff;font-size:13px;font-weight:900;border-radius:50%;display:flex;align-items:center;justify-content:center;z-index:10;box-shadow:0 2px 6px rgba(0,0,0,0.4)">'+rank+'</span>':'';
+    badges+=rankStr;
+    badges+='<div class="goat-banner">'+'★'.repeat(f.goatTier)+' GOAT</div>';
   }
   // Rating pill
   if(f.goatTier===0&&f.rating)badges+='<span class="rating-pill '+f.rating+'">'+RATING_LABELS[f.rating]+'</span>';
