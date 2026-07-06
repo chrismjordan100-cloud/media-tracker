@@ -757,7 +757,7 @@ function renderTile(f,rank){
   let badges='';
   // GOAT banner with rank
   if(f.goatTier>0){
-    const rankStr=(f.goatTier===3&&rank)?'<span style="font-size:14px;font-weight:900;margin-right:4px">#'+rank+'</span>':'';
+    const rankStr=(f.goatTier===3&&rank)?'<span style="font-size:16px;font-weight:900;color:#e24b4a;margin-right:4px">#'+rank+'</span>':'';
     badges+='<div class="goat-banner">'+rankStr+'★'.repeat(f.goatTier)+' GOAT</div>';
   }
   // Rating pill
