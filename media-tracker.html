@@ -277,6 +277,7 @@ body{background:#0f0f0f;color:#eee;font-family:-apple-system,BlinkMacSystemFont,
 <button onclick="reimportCovers()" title="Re-fetch all non-confirmed covers">🖼 Reimport Covers</button>
 <button onclick="fetchCertificates()" title="Fetch UK certificates and runtimes">📜 Fetch Certs</button>
 <button onclick="recheckAllEmpire()" title="Re-check all Empire 5-star ratings from empireonline.com">★ Check Empire</button>
+<button onclick="recheckAllStreaming()" title="Check streaming availability (Netflix, Prime, Disney+, Apple TV+)">▶ Streaming</button>
 <button onclick="openDuplicateFinder()" title="Find duplicate titles">🔍 Duplicates</button>
 <button id="deleteToggle" onclick="toggleDeleteMode()" title="Delete Mode">🗑 Delete</button>
 <button id="deleteFiltered" style="display:none;color:#e24b4a" onclick="deleteAllFiltered()" title="Delete All Filtered">🗑 Delete Filtered</button>
@@ -288,7 +289,7 @@ body{background:#0f0f0f;color:#eee;font-family:-apple-system,BlinkMacSystemFont,
 <select id="genreFilter" onchange="renderGrid()"><option value="">All Genres</option></select>
 <select id="decadeFilter" onchange="renderGrid()"><option value="">All Decades</option></select>
 <select id="ratingFilter" onchange="renderGrid()"><option value="">All Ratings</option><option value="goat">GOAT</option><option value="amazing">Amazing</option><option value="good">Good</option><option value="meh">Meh</option><option value="dislike">Didn't Like</option><option value="neveragain">Never Again</option><option value="unrated">Unrated</option></select>
-<select id="flagFilter" onchange="renderGrid()"><option value="">No Flag</option><option value="needsrating">Needs Rating</option><option value="needsestimate">Needs Estimate</option><option value="soon">⚡ Soon</option><option value="katie">💛 Katie</option></select>
+<select id="flagFilter" onchange="renderGrid()"><option value="">No Flag</option><option value="needsrating">Needs Rating</option><option value="needsestimate">Needs Estimate</option><option value="soon">⚡ Soon</option><option value="katie">💛 Katie</option><option value="streaming">▶ Streaming</option></select>
 <select id="coverFilter" onchange="renderGrid()"><option value="">All Covers</option><option value="wrong">Flagged Wrong</option><option value="confirmed">Confirmed</option><option value="unreviewed">Unreviewed</option></select>
 <select id="directorFilter" onchange="renderGrid()"><option value="">All Directors</option></select>
 <select id="castFilter" onchange="renderGrid()"><option value="">All Cast</option></select>
@@ -540,6 +541,7 @@ function getFiltered(){
     if(flag==='needsestimate'&&!f.needsEstimate)return false;
     if(flag==='soon'&&!f.watchSoon)return false;
     if(flag==='katie'&&!f.watchWithKatie)return false;
+    if(flag==='streaming'&&!f.streamingOn)return false;
     if(flag==='new'&&(!f.addedDate||Date.now()-new Date(f.addedDate).getTime()>86400000))return false;
     if(cover==='wrong'&&!f.posterWrong)return false;
     if(cover==='confirmed'&&!f.posterConfirmed)return false;
@@ -800,6 +802,8 @@ function renderTile(f,rank){
   if(f.mediaType!=='film'){const mt=MEDIA_TYPES.find(m=>m.k===f.mediaType);if(mt)badges+='<span class="type-badge">'+mt.l+'</span>'}
   // Katie watched badge
   if(f.watchedWithKatie)badges+='<span style="position:absolute;bottom:38px;left:50%;transform:translateX(-50%);font-size:18px;font-weight:900;color:#16a34a;text-shadow:0 0 4px rgba(0,0,0,0.8);z-index:2">K</span>';
+  // Streaming badge
+  if(f.streamingOn)badges+='<span style="position:absolute;top:4px;left:4px;background:rgba(0,0,0,.75);color:#fff;font-size:8px;padding:2px 5px;border-radius:3px;z-index:2" title="'+f.streamingOn+'">▶ '+f.streamingOn+'</span>';
   // Delete mode checkbox
   let checkbox='';
   if(deleteMode)checkbox='<input type="checkbox" style="position:absolute;top:6px;left:6px;z-index:5" '+(selectedIds.has(f.id)?'checked':'')+' onclick="event.stopPropagation();toggleSelect('+f.id+')">';
@@ -1471,6 +1475,40 @@ async function openKatieBrowser(){
   save();
 }
 function closeKatieModal(){document.getElementById('soonModal').style.display='none'}
+
+const STREAMING_IDS={8:'Netflix',9:'Prime',337:'Disney+',350:'Apple TV+'};
+
+async function checkStreaming(f){
+  if(!f.tmdbId)return;
+  try{
+    const searchType=(f.mediaType==='tv'||f.mediaType==='comedy')?'tv':'movie';
+    const resp=await fetch('https://api.themoviedb.org/3/'+searchType+'/'+f.tmdbId+'/watch/providers',{headers:{Authorization:'Bearer '+TMDB_TOKEN}});
+    const data=await resp.json();
+    const gb=data.results&&data.results.GB;
+    if(!gb||!gb.flatrate){f.streamingOn='';f.streamingChecked=true;return}
+    const matches=gb.flatrate.filter(p=>STREAMING_IDS[p.provider_id]).map(p=>STREAMING_IDS[p.provider_id]);
+    f.streamingOn=matches.length>0?matches.join(', '):'';
+    f.streamingChecked=true;
+  }catch(e){f.streamingOn='';f.streamingChecked=true}
+}
+
+async function checkAllStreaming(){
+  const toCheck=films.filter(f=>!f.streamingChecked&&f.tmdbId);
+  if(toCheck.length===0){updateStats();return}
+  let done=0;
+  for(const f of toCheck){
+    done++;
+    document.getElementById('statsBar').innerHTML='<span style="color:#378add">▶ Checking streaming... '+done+'/'+toCheck.length+'</span>';
+    await checkStreaming(f);
+    await new Promise(r=>setTimeout(r,200));
+  }
+  save();renderGrid();
+}
+
+async function recheckAllStreaming(){
+  films.forEach(f=>{f.streamingChecked=false;f.streamingOn=''});
+  save();await checkAllStreaming();
+}
 
 // Soon Browser
 function openSoonBrowser(){
