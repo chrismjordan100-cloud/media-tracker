@@ -1455,7 +1455,7 @@ async function openKatieBrowser(){
         const prompt='For the film '+safeTitle+' ('+f.year+'), write one sentence (max 20 words) describing what it FEELS like to watch it. The mood, the experience. Not a plot summary. Return ONLY the sentence.';
         const resp=await fetch('https://ditw97qgs2.execute-api.eu-north-1.amazonaws.com/ai',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:[{role:'user',content:prompt}]})});
         const data=await resp.json();
-        if(data.choices&&data.choices[0]){f.katieTagline=data.choices[0].message.content.replace(/"/g,'').replace(/\n/g,' ').trim();updated=true;renderKatieModal(sorted)}
+        if(data.choices&&data.choices[0]){f.katieTagline=data.choices[0].message.content.replace(/"/g,'').split(String.fromCharCode(10)).join(' ').trim();updated=true;renderKatieModal(sorted)}
       }catch(e){}
     }
   }
