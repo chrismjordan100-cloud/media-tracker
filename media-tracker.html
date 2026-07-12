@@ -1780,7 +1780,7 @@ async function refreshMetadata(id){
 
 async function backgroundFetch(){
   const toFetch=films.filter(f=>!posters[f.id]&&!f.posterConfirmed);
-  if(toFetch.length===0){checkEmpireRatings();return}
+  if(toFetch.length===0)return;
   fetchingCovers=true;
   for(const f of toFetch){
     await fetchMetadataForFilm(f,'');
@@ -1788,7 +1788,6 @@ async function backgroundFetch(){
   }
   fetchingCovers=false;
   save();renderGrid();
-  checkEmpireRatings();
 }
 
 function makeSlug(title){return title.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')}
@@ -1885,16 +1884,16 @@ async function checkRottenTomatoes(f){
 
 async function checkEmpireRatings(){
   const toCheck=films.filter(f=>(!f.empireChecked||!f.totalFilmChecked||!f.rtChecked)&&(f.mediaType==='film'||f.mediaType==='tv'));
-  if(toCheck.length===0)return;
-  let done=0;
+  if(toCheck.length===0){updateStats();return}
+  let done=0;let rateLimited=0;
   for(const f of toCheck){
+    if(rateLimited>=3){document.getElementById('statsBar').innerHTML='<span style="color:#e24b4a">Rate limited — try again later ('+done+' checked)</span>';break}
     done++;
     document.getElementById('statsBar').innerHTML='<span style="color:#c8a400">★ Checking ratings... '+done+'/'+toCheck.length+' — '+f.title+'</span>';
-    if(!f.empireChecked){await checkEmpireRating(f);await new Promise(r=>setTimeout(r,800))}
-    if(!f.totalFilmChecked){await checkTotalFilmRating(f);await new Promise(r=>setTimeout(r,800))}
-    if(!f.rtChecked){await checkRottenTomatoes(f);await new Promise(r=>setTimeout(r,800))}
+    if(!f.empireChecked){await checkEmpireRating(f);await new Promise(r=>setTimeout(r,1000))}
+    if(!f.totalFilmChecked){await checkTotalFilmRating(f);await new Promise(r=>setTimeout(r,1000))}
+    if(!f.rtChecked){const result=await checkRottenTomatoes(f);if(result===null&&!f.rtChecked)rateLimited++;else rateLimited=0;await new Promise(r=>setTimeout(r,1000))}
   }
-  // Update PRESS_RATINGS based on results
   films.forEach(f=>{
     const key=normalize(f.title);
     if(f.empire5&&f.totalFilm5)PRESS_RATINGS[key]='B';
