@@ -840,6 +840,7 @@ function openTileModal(id){
   html+='</div>';
   html+='<div style="font-size:12px;color:#aaa;margin-top:4px">'+(f.year||'')+' · '+(f.director?f.director.split(",")[0]:"")+'</div>';
   if(f.imdbRating)html+='<div style="font-size:12px;color:#c8a400;margin-top:2px">IMDB: '+f.imdbRating+'</div>';
+  if(f.streamingOn)html+='<div style="font-size:12px;color:#4af;margin-top:2px">▶ Streaming: '+f.streamingOn+'</div>';
   html+='</div></div>';
   html+='<div id="detailsBox" style="display:none;background:#0f0f0f;border-radius:6px;padding:10px;margin:10px 0;font-size:12px;color:#ccc;line-height:1.5"></div>';
   html+='<div id="screenshotBox" style="margin:10px 0;border-radius:6px;overflow:hidden"></div>';
