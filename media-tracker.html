@@ -797,6 +797,8 @@ function renderTile(f,rank){
   if(f.posterWrong)badges+='<span class="status-dot wrong" style="top:auto;bottom:4px;left:4px"></span>';
   // Type badge
   if(f.mediaType!=='film'){const mt=MEDIA_TYPES.find(m=>m.k===f.mediaType);if(mt)badges+='<span class="type-badge">'+mt.l+'</span>'}
+  // Katie watched badge
+  if(f.watchedWithKatie)badges+='<span style="position:absolute;bottom:38px;left:50%;transform:translateX(-50%);font-size:18px;font-weight:900;color:#16a34a;text-shadow:0 0 4px rgba(0,0,0,0.8);z-index:2">K</span>';
   // Delete mode checkbox
   let checkbox='';
   if(deleteMode)checkbox='<input type="checkbox" style="position:absolute;top:6px;left:6px;z-index:5" '+(selectedIds.has(f.id)?'checked':'')+' onclick="event.stopPropagation();toggleSelect('+f.id+')">';
