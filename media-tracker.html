@@ -803,7 +803,7 @@ function renderTile(f,rank){
   // Katie watched badge
   if(f.watchedWithKatie)badges+='<span style="position:absolute;bottom:38px;left:50%;transform:translateX(-50%);font-size:18px;font-weight:900;color:#16a34a;text-shadow:0 0 4px rgba(0,0,0,0.8);z-index:2">K</span>';
   // Streaming badge
-  if(f.streamingOn)badges+='<span style="position:absolute;top:22px;left:4px;background:rgba(0,0,0,.85);color:#4af;font-size:8px;padding:2px 5px;border-radius:3px;z-index:3" title="'+f.streamingOn+'">▶</span>';
+  if(f.streamingOn)badges+='<span style="position:absolute;top:4px;left:4px;background:rgba(0,0,0,.8);color:#4af;font-size:8px;padding:2px 5px;border-radius:3px;z-index:4">▶</span>';
   // Delete mode checkbox
   let checkbox='';
   if(deleteMode)checkbox='<input type="checkbox" style="position:absolute;top:6px;left:6px;z-index:5" '+(selectedIds.has(f.id)?'checked':'')+' onclick="event.stopPropagation();toggleSelect('+f.id+')">';
