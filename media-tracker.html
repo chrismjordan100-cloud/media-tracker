@@ -272,6 +272,7 @@ body{background:#0f0f0f;color:#eee;font-family:-apple-system,BlinkMacSystemFont,
 <button onclick="openCategoryAudit()" title="Category Audit">🗂 Audit</button>
 <button onclick="openEstimateAudit()" title="Watch Estimate Audit">👍 Estimates</button>
 <button onclick="openSoonBrowser()" title="Watch Soon Browser">⚡ Soon</button>
+<button onclick="openKatieBrowser()" title="Watch with Katie">💛 Katie</button>
 <button onclick="openHistory()" title="Viewing History">📅 History</button>
 <button onclick="reimportCovers()" title="Re-fetch all non-confirmed covers">🖼 Reimport Covers</button>
 <button onclick="fetchCertificates()" title="Fetch UK certificates and runtimes">📜 Fetch Certs</button>
@@ -1429,6 +1430,46 @@ function saveEstimates(){
     else{for(let i=0;i<val;i++)f.watchHistory.push({date:'',rating:'',moods:[],notes:'',historical:true})}
   });
   save();closeEstimateAudit();renderGrid();
+}
+
+// Katie Browser
+async function openKatieBrowser(){
+  const katieFilms=films.filter(f=>f.watchWithKatie);
+  if(katieFilms.length===0){alert('No films marked to watch with Katie yet.');return}
+  
+  let html='<button class="modal-close" onclick="document.getElementById(\\'soonModal\\').style.display=\\'none\\'">&times;</button>';
+  html+='<h2>💛 Watch with Katie</h2>';
+  html+='<p style="font-size:11px;color:#888;margin-bottom:12px">'+katieFilms.filter(f=>!f.watchedWithKatie).length+' to watch · '+katieFilms.filter(f=>f.watchedWithKatie).length+' watched together</p>';
+  
+  const sorted=[...katieFilms.filter(f=>!f.watchedWithKatie),...katieFilms.filter(f=>f.watchedWithKatie)];
+  
+  html+='<div style="display:flex;flex-direction:column;gap:8px">';
+  for(const f of sorted){
+    const poster=posters[f.id];
+    const watched=f.watchedWithKatie;
+    const opacity=watched?'opacity:0.5;':'';
+    if(!f.katieTagline&&f.tmdbId){
+      try{
+        const searchType=(f.mediaType==='tv'||f.mediaType==='comedy')?'tv':'movie';
+        const resp=await fetch('https://api.themoviedb.org/3/'+searchType+'/'+f.tmdbId,{headers:{Authorization:'Bearer '+TMDB_TOKEN}});
+        const data=await resp.json();
+        f.katieTagline=data.tagline||'';
+        if(!f.katieTagline&&data.overview)f.katieTagline=data.overview.substring(0,120)+'...';
+      }catch(e){}
+    }
+    if(!f.katieTagline)f.katieTagline=f.category||'';
+    html+='<div style="display:flex;gap:10px;padding:10px;background:#1a1a1a;border-radius:8px;'+opacity+'cursor:pointer" onclick="document.getElementById(\\'soonModal\\').style.display=\\'none\\';openTileModal('+f.id+')">';
+    if(poster)html+='<img src="'+poster+'" style="width:45px;height:67px;object-fit:cover;border-radius:4px;flex-shrink:0">';
+    html+='<div style="flex:1;min-width:0">';
+    html+='<div style="font-size:13px;font-weight:700;margin-bottom:2px">'+f.title+(watched?' <span style="color:#16a34a;font-size:10px">✓ watched</span>':'')+'</div>';
+    html+='<div style="font-size:11px;color:#888;margin-bottom:3px">'+(f.year||'')+' · '+(f.director?f.director.split(',')[0]:'')+(f.imdbRating?' · ⭐ '+f.imdbRating:'')+'</div>';
+    html+='<div style="font-size:11px;color:#aaa;font-style:italic;line-height:1.3">'+f.katieTagline+'</div>';
+    html+='</div></div>';
+  }
+  html+='</div>';
+  document.getElementById('soonModalContent').innerHTML=html;
+  document.getElementById('soonModal').style.display='block';
+  save();
 }
 
 // Soon Browser
