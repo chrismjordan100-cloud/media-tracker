@@ -1441,38 +1441,48 @@ async function openKatieBrowser(){
   const katieFilms=films.filter(f=>f.watchWithKatie);
   if(katieFilms.length===0){alert('No films marked to watch with Katie yet.');return}
   
-  let html='<button class="modal-close" onclick="closeKatieModal()">&times;</button>';
-  html+='<h2>💛 Watch with Katie</h2>';
-  html+='<p style="font-size:11px;color:#888;margin-bottom:12px">'+katieFilms.filter(f=>!f.watchedWithKatie).length+' to watch · '+katieFilms.filter(f=>f.watchedWithKatie).length+' watched together</p>';
-  
   const sorted=[...katieFilms.filter(f=>!f.watchedWithKatie).sort((a,b)=>a.title.localeCompare(b.title)),...katieFilms.filter(f=>f.watchedWithKatie).sort((a,b)=>a.title.localeCompare(b.title))];
   
+  // Show modal immediately with whatever taglines we have
+  renderKatieModal(sorted);
+  
+  // Then fetch missing taglines in background
+  let updated=false;
+  for(const f of sorted){
+    if(!f.katieTagline&&f.title){
+      try{
+        const safeTitle=f.title.replace(/"/g,'').replace(/'/g,'');
+        const prompt='For the film '+safeTitle+' ('+f.year+'), write one sentence (max 20 words) describing what it FEELS like to watch it. The mood, the experience. Not a plot summary. Return ONLY the sentence.';
+        const resp=await fetch('https://ditw97qgs2.execute-api.eu-north-1.amazonaws.com/ai',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:[{role:'user',content:prompt}]})});
+        const data=await resp.json();
+        if(data.choices&&data.choices[0]){f.katieTagline=data.choices[0].message.content.replace(/"/g,'').replace(/\n/g,' ').trim();updated=true;renderKatieModal(sorted)}
+      }catch(e){}
+    }
+  }
+  if(updated)save();
+}
+
+function renderKatieModal(sorted){
+  let html='<button class="modal-close" onclick="closeKatieModal()">&times;</button>';
+  html+='<h2>💛 Watch with Katie</h2>';
+  html+='<p style="font-size:11px;color:#888;margin-bottom:12px">'+sorted.filter(f=>!f.watchedWithKatie).length+' to watch · '+sorted.filter(f=>f.watchedWithKatie).length+' watched together</p>';
   html+='<div style="display:flex;flex-direction:column;gap:8px">';
   for(const f of sorted){
     const poster=posters[f.id];
     const watched=f.watchedWithKatie;
     const opacity=watched?'opacity:0.5;':'';
-    if(!f.katieTagline&&f.title){
-      try{
-        const prompt='For the film "'+f.title+'" ('+f.year+'), write one sentence (max 20 words) describing what it FEELS like to watch it — the mood, the experience, what makes it gripping or moving. Not a plot summary, not a marketing tagline. More like "A slow-burn tension masterpiece that will have you holding your breath for two hours." Return ONLY the sentence.';
-        const resp=await fetch('https://ditw97qgs2.execute-api.eu-north-1.amazonaws.com/ai',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:[{role:'user',content:prompt}]})});
-        const data=await resp.json();
-        if(data.choices&&data.choices[0])f.katieTagline=data.choices[0].message.content.replace(/"/g,'').trim();
-      }catch(e){}
-    }
-    if(!f.katieTagline)f.katieTagline=f.category||'';
+    const tagline=f.katieTagline||f.category||'Loading...';
     html+='<div style="display:flex;gap:10px;padding:10px;background:#1a1a1a;border-radius:8px;'+opacity+'cursor:pointer" onclick="closeKatieModal();openTileModal('+f.id+')">';
     if(poster)html+='<img src="'+poster+'" style="width:45px;height:67px;object-fit:cover;border-radius:4px;flex-shrink:0">';
     html+='<div style="flex:1;min-width:0">';
     html+='<div style="font-size:13px;font-weight:700;margin-bottom:2px">'+f.title+(watched?' <span style="color:#16a34a;font-size:10px">✓ watched</span>':'')+'</div>';
     html+='<div style="font-size:11px;color:#888;margin-bottom:3px">'+(f.year||'')+' · '+(f.director?f.director.split(',')[0]:'')+(f.imdbRating?' · ⭐ '+f.imdbRating:'')+'</div>';
-    html+='<div style="font-size:11px;color:#aaa;font-style:italic;line-height:1.3">'+f.katieTagline+'</div>';
+    html+='<div style="font-size:11px;color:#aaa;font-style:italic;line-height:1.3">'+tagline+'</div>';
     html+='</div></div>';
   }
   html+='</div>';
   document.getElementById('soonModalContent').innerHTML=html;
   document.getElementById('soonModal').style.display='block';
-  save();
 }
 function closeKatieModal(){document.getElementById('soonModal').style.display='none'}
 
