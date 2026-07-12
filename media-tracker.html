@@ -1503,14 +1503,23 @@ async function checkStreaming(f){
 }
 
 async function checkAllStreaming(){
-  const toCheck=films.filter(f=>!f.streamingChecked&&f.tmdbId);
+  const toCheck=films.filter(f=>!f.streamingChecked);
   if(toCheck.length===0){updateStats();return}
   let done=0;
   for(const f of toCheck){
     done++;
-    document.getElementById('statsBar').innerHTML='<span style="color:#378add">▶ Checking streaming... '+done+'/'+toCheck.length+'</span>';
+    document.getElementById('statsBar').innerHTML='<span style="color:#378add">▶ Checking streaming... '+done+'/'+toCheck.length+' — '+f.title+'</span>';
+    if(!f.tmdbId&&f.title){
+      try{
+        const searchType=(f.mediaType==='tv'||f.mediaType==='comedy')?'tv':'movie';
+        const url='https://api.themoviedb.org/3/search/'+searchType+'?query='+encodeURIComponent(f.title)+(f.year?'&year='+f.year:'');
+        const sr=await fetch(url,{headers:{Authorization:'Bearer '+TMDB_TOKEN}});
+        const sd=await sr.json();
+        if(sd.results&&sd.results.length>0)f.tmdbId=sd.results[0].id;
+      }catch(e){}
+    }
     await checkStreaming(f);
-    await new Promise(r=>setTimeout(r,200));
+    await new Promise(r=>setTimeout(r,250));
   }
   save();renderGrid();
 }
