@@ -1454,7 +1454,7 @@ async function openKatieBrowser(){
     const opacity=watched?'opacity:0.5;':'';
     if(!f.katieTagline&&f.title){
       try{
-        const prompt='Give me one compelling sentence (max 15 words) that would make someone want to watch the film "'+f.title+'" ('+f.year+'). No spoilers. Just the hook. Return ONLY the sentence, nothing else.';
+        const prompt='For the film "'+f.title+'" ('+f.year+'), write one sentence (max 20 words) describing what it FEELS like to watch it — the mood, the experience, what makes it gripping or moving. Not a plot summary, not a marketing tagline. More like "A slow-burn tension masterpiece that will have you holding your breath for two hours." Return ONLY the sentence.';
         const resp=await fetch('https://ditw97qgs2.execute-api.eu-north-1.amazonaws.com/ai',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:[{role:'user',content:prompt}]})});
         const data=await resp.json();
         if(data.choices&&data.choices[0])f.katieTagline=data.choices[0].message.content.replace(/"/g,'').trim();
