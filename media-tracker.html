@@ -1441,20 +1441,19 @@ async function openKatieBrowser(){
   html+='<h2>💛 Watch with Katie</h2>';
   html+='<p style="font-size:11px;color:#888;margin-bottom:12px">'+katieFilms.filter(f=>!f.watchedWithKatie).length+' to watch · '+katieFilms.filter(f=>f.watchedWithKatie).length+' watched together</p>';
   
-  const sorted=[...katieFilms.filter(f=>!f.watchedWithKatie),...katieFilms.filter(f=>f.watchedWithKatie)];
+  const sorted=[...katieFilms.filter(f=>!f.watchedWithKatie).sort((a,b)=>a.title.localeCompare(b.title)),...katieFilms.filter(f=>f.watchedWithKatie).sort((a,b)=>a.title.localeCompare(b.title))];
   
   html+='<div style="display:flex;flex-direction:column;gap:8px">';
   for(const f of sorted){
     const poster=posters[f.id];
     const watched=f.watchedWithKatie;
     const opacity=watched?'opacity:0.5;':'';
-    if(!f.katieTagline&&f.tmdbId){
+    if(!f.katieTagline&&f.title){
       try{
-        const searchType=(f.mediaType==='tv'||f.mediaType==='comedy')?'tv':'movie';
-        const resp=await fetch('https://api.themoviedb.org/3/'+searchType+'/'+f.tmdbId,{headers:{Authorization:'Bearer '+TMDB_TOKEN}});
+        const prompt='Give me one compelling sentence (max 15 words) that would make someone want to watch the film "'+f.title+'" ('+f.year+'). No spoilers. Just the hook. Return ONLY the sentence, nothing else.';
+        const resp=await fetch('https://ditw97qgs2.execute-api.eu-north-1.amazonaws.com/ai',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:[{role:'user',content:prompt}]})});
         const data=await resp.json();
-        f.katieTagline=data.tagline||'';
-        if(!f.katieTagline&&data.overview)f.katieTagline=data.overview.substring(0,120)+'...';
+        if(data.choices&&data.choices[0])f.katieTagline=data.choices[0].message.content.replace(/"/g,'').trim();
       }catch(e){}
     }
     if(!f.katieTagline)f.katieTagline=f.category||'';
