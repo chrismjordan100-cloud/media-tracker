@@ -1437,7 +1437,7 @@ async function openKatieBrowser(){
   const katieFilms=films.filter(f=>f.watchWithKatie);
   if(katieFilms.length===0){alert('No films marked to watch with Katie yet.');return}
   
-  let html='<button class="modal-close" onclick="document.getElementById(\\'soonModal\\').style.display=\\'none\\'">&times;</button>';
+  let html='<button class="modal-close" onclick="closeKatieModal()">&times;</button>';
   html+='<h2>💛 Watch with Katie</h2>';
   html+='<p style="font-size:11px;color:#888;margin-bottom:12px">'+katieFilms.filter(f=>!f.watchedWithKatie).length+' to watch · '+katieFilms.filter(f=>f.watchedWithKatie).length+' watched together</p>';
   
@@ -1458,7 +1458,7 @@ async function openKatieBrowser(){
       }catch(e){}
     }
     if(!f.katieTagline)f.katieTagline=f.category||'';
-    html+='<div style="display:flex;gap:10px;padding:10px;background:#1a1a1a;border-radius:8px;'+opacity+'cursor:pointer" onclick="document.getElementById(\\'soonModal\\').style.display=\\'none\\';openTileModal('+f.id+')">';
+    html+='<div style="display:flex;gap:10px;padding:10px;background:#1a1a1a;border-radius:8px;'+opacity+'cursor:pointer" onclick="closeKatieModal();openTileModal('+f.id+')">';
     if(poster)html+='<img src="'+poster+'" style="width:45px;height:67px;object-fit:cover;border-radius:4px;flex-shrink:0">';
     html+='<div style="flex:1;min-width:0">';
     html+='<div style="font-size:13px;font-weight:700;margin-bottom:2px">'+f.title+(watched?' <span style="color:#16a34a;font-size:10px">✓ watched</span>':'')+'</div>';
@@ -1471,6 +1471,7 @@ async function openKatieBrowser(){
   document.getElementById('soonModal').style.display='block';
   save();
 }
+function closeKatieModal(){document.getElementById('soonModal').style.display='none'}
 
 // Soon Browser
 function openSoonBrowser(){
