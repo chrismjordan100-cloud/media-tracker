@@ -919,6 +919,7 @@ function openTileModal(id){
   html+='<button class="btn-secondary" onclick="openLogModal('+f.id+')">Log Watch</button>';
   html+='<label style="font-size:11px"><input type="checkbox" '+(f.watchSoon?'checked':'')+' onchange="toggleSoon('+f.id+',this.checked)"> ⚡ Soon</label>';
   html+='<label style="font-size:11px"><input type="checkbox" '+(f.watchWithKatie?'checked':'')+' onchange="toggleKatie('+f.id+',this.checked)"> 💛 Watch with Katie</label>';
+  if(f.watchWithKatie){html+='<label style="font-size:11px"><input type="checkbox" '+(f.watchedWithKatie?'checked':'')+' onchange="toggleWatchedWithKatie('+f.id+',this.checked)"> ✅ Watched together</label>'}
   html+='</div>';
 
   document.getElementById('tileModalContent').innerHTML=html;
@@ -1041,7 +1042,11 @@ function toggleSoon(id,val){
 }
 function toggleKatie(id,val){
   const f=films.find(x=>x.id===id);if(!f)return;
-  f.watchWithKatie=val;save();
+  f.watchWithKatie=val;if(!val)f.watchedWithKatie=false;save();openTileModal(id);
+}
+function toggleWatchedWithKatie(id,val){
+  const f=films.find(x=>x.id===id);if(!f)return;
+  f.watchedWithKatie=val;save();
 }
 function toggleEmpire(id){
   const f=films.find(x=>x.id===id);if(!f)return;
