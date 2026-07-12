@@ -287,7 +287,7 @@ body{background:#0f0f0f;color:#eee;font-family:-apple-system,BlinkMacSystemFont,
 <select id="genreFilter" onchange="renderGrid()"><option value="">All Genres</option></select>
 <select id="decadeFilter" onchange="renderGrid()"><option value="">All Decades</option></select>
 <select id="ratingFilter" onchange="renderGrid()"><option value="">All Ratings</option><option value="goat">GOAT</option><option value="amazing">Amazing</option><option value="good">Good</option><option value="meh">Meh</option><option value="dislike">Didn't Like</option><option value="neveragain">Never Again</option><option value="unrated">Unrated</option></select>
-<select id="flagFilter" onchange="renderGrid()"><option value="">No Flag</option><option value="needsrating">Needs Rating</option><option value="needsestimate">Needs Estimate</option><option value="soon">⚡ Soon</option></select>
+<select id="flagFilter" onchange="renderGrid()"><option value="">No Flag</option><option value="needsrating">Needs Rating</option><option value="needsestimate">Needs Estimate</option><option value="soon">⚡ Soon</option><option value="katie">💛 Katie</option></select>
 <select id="coverFilter" onchange="renderGrid()"><option value="">All Covers</option><option value="wrong">Flagged Wrong</option><option value="confirmed">Confirmed</option><option value="unreviewed">Unreviewed</option></select>
 <select id="directorFilter" onchange="renderGrid()"><option value="">All Directors</option></select>
 <select id="castFilter" onchange="renderGrid()"><option value="">All Cast</option></select>
@@ -538,6 +538,7 @@ function getFiltered(){
     if(flag==='needsrating'&&!(f.watched&&!f.rating&&f.goatTier===0))return false;
     if(flag==='needsestimate'&&!f.needsEstimate)return false;
     if(flag==='soon'&&!f.watchSoon)return false;
+    if(flag==='katie'&&!f.watchWithKatie)return false;
     if(flag==='new'&&(!f.addedDate||Date.now()-new Date(f.addedDate).getTime()>86400000))return false;
     if(cover==='wrong'&&!f.posterWrong)return false;
     if(cover==='confirmed'&&!f.posterConfirmed)return false;
@@ -914,9 +915,10 @@ function openTileModal(id){
 
   // Watch controls
   html+='<label>Watch History ('+watchCount+' watches)</label>';
-  html+='<div style="display:flex;gap:8px;align-items:center;margin:6px 0">';
+  html+='<div style="display:flex;gap:8px;align-items:center;margin:6px 0;flex-wrap:wrap">';
   html+='<button class="btn-secondary" onclick="openLogModal('+f.id+')">Log Watch</button>';
   html+='<label style="font-size:11px"><input type="checkbox" '+(f.watchSoon?'checked':'')+' onchange="toggleSoon('+f.id+',this.checked)"> ⚡ Soon</label>';
+  html+='<label style="font-size:11px"><input type="checkbox" '+(f.watchWithKatie?'checked':'')+' onchange="toggleKatie('+f.id+',this.checked)"> 💛 Watch with Katie</label>';
   html+='</div>';
 
   document.getElementById('tileModalContent').innerHTML=html;
@@ -1036,6 +1038,10 @@ function setGenre(id,genre){
 function toggleSoon(id,val){
   const f=films.find(x=>x.id===id);if(!f)return;
   f.watchSoon=val;save();
+}
+function toggleKatie(id,val){
+  const f=films.find(x=>x.id===id);if(!f)return;
+  f.watchWithKatie=val;save();
 }
 function toggleEmpire(id){
   const f=films.find(x=>x.id===id);if(!f)return;
