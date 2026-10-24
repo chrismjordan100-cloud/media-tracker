@@ -19,4 +19,4 @@ jobs:
           aws-region: eu-north-1
 
       - name: Deploy to S3
-        run: aws s3 sync . s3://media-tracker-app-eggnog-915238109618-eu-north-1-an --exclude ".git/*" --exclude ".github/*" --exclude "desktop-app/*" --exclude ".gitignore"
+        run: aws s3 sync . s3://media-tracker-app-eggnog-915238109618-eu-north-1-an --exclude ".git/*" --exclude ".github/*" --exclude "desktop-app/*" --exclude ".gitignore" --exclude "_archive/*" --exclude "*.md" --exclude "*.docx"

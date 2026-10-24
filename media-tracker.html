@@ -1,3 +1,13 @@
+<!--
+  ============================================================
+  MEDIA TRACKER - KEY FILE
+  Canonical path: C:\Users\chris\Projects\Project 1\media-tracker.html
+  (The folder is named "Project 1". There is NO copy in "MediaTrackerApp" - that folder is empty.)
+  Single-file app: shell + four srcdoc iframes (Films/Games/Books/Board Games).
+  Data lives in browser localStorage (ft_films, ft_posters, etc.).
+  Paste the path above to any AI when you want to work on this app.
+  ============================================================
+-->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -20,8 +30,12 @@ body{background:#111;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',san
 .tab-btn.active-book{color:#e67e22;border-bottom-color:#e67e22}
 .tab-btn.active-board{color:#9b59b6;border-bottom-color:#9b59b6}
 .tab-divider{width:1px;height:24px;background:#2a2a2a}
-.tracker-frame{position:fixed;top:46px;left:0;right:0;bottom:0;width:100%;height:calc(100vh - 46px);border:none}
+.tracker-frame{position:fixed;top:68px;left:0;right:0;bottom:0;width:100%;height:calc(100vh - 68px);border:none}
 .hidden{display:none!important}
+.path-bar{position:fixed;top:46px;left:0;right:0;height:22px;background:#0a0a0a;border-bottom:1px solid #222;display:flex;align-items:center;gap:8px;padding:0 10px;z-index:9998;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;color:#666}
+.path-bar code{color:#8a8a8a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.path-bar button{background:#1a1a1a;border:1px solid #333;color:#999;font-size:10px;padding:1px 8px;border-radius:3px;cursor:pointer;flex-shrink:0}
+.path-bar button:hover{color:#ddd;border-color:#555}
 </style>
 </head>
 <body>
@@ -40,6 +54,11 @@ body{background:#111;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',san
 <button class="tab-btn" onclick="cloudLoadAll()" title="Pull data from cloud (overwrites local)" style="font-size:10px;padding:6px 10px;color:#555">☁↓</button>
 <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
 </div>
+<div class="path-bar">
+<span>📄 Key file:</span>
+<code id="keyPath">C:\Users\chris\Projects\Project 1\media-tracker.html</code>
+<button onclick="copyKeyPath(this)" title="Copy path to clipboard">Copy</button>
+</div>
 <iframe id="filmFrame" class="tracker-frame"></iframe>
 <iframe id="gameFrame" class="tracker-frame hidden"></iframe>
 <iframe id="bookFrame" class="tracker-frame hidden"></iframe>
@@ -47,6 +66,17 @@ body{background:#111;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',san
 <script>
 const SYNC_API = 'https://ditw97qgs2.execute-api.eu-north-1.amazonaws.com';
 const USER_ID = 'chris';
+
+function copyKeyPath(btn){
+  const path=document.getElementById('keyPath').textContent;
+  const done=()=>{const o=btn.textContent;btn.textContent='Copied';setTimeout(()=>btn.textContent=o,1200)};
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(path).then(done).catch(()=>fallbackCopy(path,done))}
+  else{fallbackCopy(path,done)}
+}
+function fallbackCopy(text,cb){
+  const ta=document.createElement('textarea');ta.value=text;ta.style.position='fixed';ta.style.opacity='0';
+  document.body.appendChild(ta);ta.select();try{document.execCommand('copy')}catch(e){}document.body.removeChild(ta);if(cb)cb();
+}
 
 function switchTab(tab){
 const fT=document.getElementById('filmTab'),gT=document.getElementById('gameTab'),bT=document.getElementById('bookTab'),dT=document.getElementById('boardTab');
@@ -432,6 +462,8 @@ const FULL_SEED = [
 ];
 
 const NEWLIST = [
+// Friday the 13th series (originals + remake) - added as unwatched
+"Friday the 13th (1980)","Friday the 13th Part 2","Friday the 13th Part III","Friday the 13th: The Final Chapter","Friday the 13th: A New Beginning","Friday the 13th Part VI: Jason Lives","Friday the 13th Part VII: The New Blood","Friday the 13th Part VIII: Jason Takes Manhattan","Jason Goes to Hell: The Final Friday","Jason X","Freddy vs. Jason","Friday the 13th (2009)",
 "The Truman Show","Forrest Gump","The Green Mile","Se7en","Memento","American Beauty","Taxi Driver","Apocalypse Now","A Clockwork Orange","Full Metal Jacket",
 "2001: A Space Odyssey","The Prestige","Django Unchained","Inglourious Basterds","Kill Bill: Volume 1","Reservoir Dogs","City of God","Oldboy","Pan's Labyrinth","Amelie",
 "Spirited Away","Princess Mononoke","Akira","Ghost in the Shell","The Thing","Halloween","A Nightmare on Elm Street","The Exorcist","Hereditary","Midsommar",
@@ -3562,7 +3594,7 @@ const NEWLIST = [
 {title:"Pet Sematary",year:1983,author:"Stephen King",category:"Horror",pages:374},
 {title:"It",year:1986,author:"Stephen King",category:"Horror",pages:1138},
 {title:"Misery",year:1987,author:"Stephen King",category:"Horror",pages:310},
-{title:"The Tommyknockers",year:1987,author:"Stephen King",category:"Science Fiction",pages:558},
+{title:"The Tommyknockers",year:1987,author:"Stephen King",category:"Science Fiction",pages:558,rank:74,notes:"Collider rank #74 of 81. Jeremy Urquhart calls this King's biggest misstep of the 70s/80s (setting aside the Bachman books): a near-1000-page behemoth about a strange, possibly alien object unearthed near a Maine town that makes locals start acting oddly. Of all King's doorstop novels, it has the least reason to be so long — a few readable stretches buried in bloat that makes you wonder if it was edited at all. Source: Collider, \"Every Stephen King Book, Ranked\" (Oct 2026) https://collider.com/stephen-king-books-ranked/ — narrative paraphrased."},
 {title:"The Dark Half",year:1989,author:"Stephen King",category:"Horror",pages:431},
 {title:"Needful Things",year:1991,author:"Stephen King",category:"Horror",pages:690},
 {title:"Gerald's Game",year:1992,author:"Stephen King",category:"Psychological",pages:332},
@@ -3571,13 +3603,13 @@ const NEWLIST = [
 {title:"Rose Madder",year:1995,author:"Stephen King",category:"Thriller",pages:420},
 {title:"The Green Mile",year:1996,author:"Stephen King",category:"Fantasy",pages:400},
 {title:"Desperation",year:1996,author:"Stephen King",category:"Horror",pages:547},
-{title:"Bag of Bones",year:1998,author:"Stephen King",category:"Horror",pages:529},
+{title:"Bag of Bones",year:1998,author:"Stephen King",category:"Horror",pages:529,rank:79,notes:"Collider rank #79 of 81. Leans too hard on King's usual furniture — a writer protagonist, familiar settings, supernatural beats that ramp up on cue, an unconvincing romance, and a story that outstays its welcome. Comforting if you like the familiarity, but the reviewer argues every element has been done better elsewhere in King's work, making it a repetitive, disappointing read that deserves to be named among his weaker efforts more often. Source: Collider, \"Every Stephen King Book, Ranked\" (Oct 2026) https://collider.com/stephen-king-books-ranked/ — narrative paraphrased."},
 {title:"The Girl Who Loved Tom Gordon",year:1999,author:"Stephen King",category:"Thriller",pages:219},
-{title:"Dreamcatcher",year:2001,author:"Stephen King",category:"Science Fiction",pages:620},
+{title:"Dreamcatcher",year:2001,author:"Stephen King",category:"Science Fiction",pages:620,rank:72,notes:"Collider rank #72 of 81. Paired with The Tommyknockers as King doing sprawling alien sci-fi at punishing length — read back-to-back they blur together, though this one is a touch shorter. The reviewer finds it a mess, suggesting the infamous film is a quicker way to experience the same muddle. Its messiness is at least the more interesting, occasionally fun kind rather than purely frustrating, but it's one for completists only. Source: Collider, \"Every Stephen King Book, Ranked\" (Oct 2026) https://collider.com/stephen-king-books-ranked/ — narrative paraphrased."},
 {title:"From a Buick 8",year:2002,author:"Stephen King",category:"Horror",pages:356},
 {title:"Cell",year:2006,author:"Stephen King",category:"Horror",pages:355},
-{title:"Lisey's Story",year:2006,author:"Stephen King",category:"Literary Fiction",pages:513},
-{title:"Duma Key",year:2008,author:"Stephen King",category:"Horror",pages:611},
+{title:"Lisey's Story",year:2006,author:"Stephen King",category:"Literary Fiction",pages:513,rank:81,notes:"Collider rank #81 of 81 (dead last). Despite being King's own favourite, the reviewer names it the worst: deeply personal and autobiographical, which you can feel on the page, but a torturous read — long, sentimental, repetitive, and weighed down by invented slang (\"babyluv,\" \"bool,\" \"smucking\") that grates. Recommended only for readers who love very sappy books or feel obligated to read all of King. Source: Collider, \"Every Stephen King Book, Ranked\" (Oct 2026) https://collider.com/stephen-king-books-ranked/ — narrative paraphrased."},
+{title:"Duma Key",year:2008,author:"Stephen King",category:"Horror",pages:611,rank:78,notes:"Collider rank #78 of 81. A promising change of pace at first — set off the Florida coast rather than Maine, with a building-contractor-turned-painter lead instead of yet another writer — but the reviewer says it falls back on tired tricks, saddles itself with one of King's most annoying comic-relief characters, and delivers underwhelming supernatural payoffs. Strong early chapters give way to a slog, a book that starts well before King works out how to end it. Source: Collider, \"Every Stephen King Book, Ranked\" (Oct 2026) https://collider.com/stephen-king-books-ranked/ — narrative paraphrased."},
 {title:"Under the Dome",year:2009,author:"Stephen King",category:"Science Fiction",pages:1074},
 {title:"11/22/63",year:2011,author:"Stephen King",category:"Science Fiction",pages:849},
 {title:"Joyland",year:2013,author:"Stephen King",category:"Mystery",pages:283},
@@ -3591,8 +3623,38 @@ const NEWLIST = [
 {title:"If It Bleeds",year:2020,author:"Stephen King",category:"Horror",pages:448},
 {title:"Billy Summers",year:2021,author:"Stephen King",category:"Thriller",pages:515},
 {title:"Fairy Tale",year:2022,author:"Stephen King",category:"Fantasy",pages:608},
-{title:"Holly",year:2023,author:"Stephen King",category:"Crime",pages:449},
+{title:"Holly",year:2023,author:"Stephen King",category:"Crime",pages:449,rank:77,notes:"Collider rank #77 of 81. Holly Gibney (first seen in a far better 2014 book) is a character King clearly adores, but readers less so — and the reviewer argues she works better in a supporting role than as the lead. The story around her is the real problem: silly villains, repetitive prose, weak dialogue, and early-2020s lockdown details hammered home too often. It reads like a novella painfully stretched to novel length, rarely gripping. Source: Collider, \"Every Stephen King Book, Ranked\" (Oct 2026) https://collider.com/stephen-king-books-ranked/ — narrative paraphrased."},
 {title:"You Like It Darker",year:2024,author:"Stephen King",category:"Horror",pages:512},
+{title:"The Regulators",year:1995,author:"Richard Bachman (Stephen King)",category:"Horror",pages:480,rank:80,notes:"Collider rank #80 of 81. A later Richard Bachman book (the pseudonym was outed years earlier). The reviewer calls it a muddled mess even by the standard of King's chaotic novels — where some of his sprawling books are chaotic in a good way, this one starts incoherent and only unravels further. Better to read its mirror-twin Desperation, published the same year under King's own name with overlapping character names. Source: Collider, \"Every Stephen King Book, Ranked\" (Oct 2026) https://collider.com/stephen-king-books-ranked/ — narrative paraphrased."},
+{title:"Just After Sunset",year:2008,author:"Stephen King",category:"Horror",pages:367,bookType:"short",rank:76,notes:"Collider rank #76 of 81. A fairly unremarkable short-story collection drawn mostly from the mid-to-late 2000s, a period the reviewer calls divisive for King. If you defend his work from that era you may find things to like; if you found that stretch weak, skip it. Even the oldest piece here, \"The Cat from Hell\" (first published 1977, about a hitman hired to kill a strangely powerful cat), doesn't land despite the fun premise. Source: Collider, \"Every Stephen King Book, Ranked\" (Oct 2026) https://collider.com/stephen-king-books-ranked/ — narrative paraphrased."},
+{title:"Thinner",year:1984,author:"Richard Bachman (Stephen King)",category:"Horror",pages:309,rank:75,notes:"Collider rank #75 of 81. The last Bachman book published before the pseudonym was exposed. A man is cursed to lose weight at a dangerous, unstoppable rate — a premise that seems compelling at first, especially while the curse feels like a blessing, but the reviewer says it grinds to a halt. You can sense an idea being forced to an ending, with a tiredness in the writing not usually felt in King's earlier work. Source: Collider, \"Every Stephen King Book, Ranked\" (Oct 2026) https://collider.com/stephen-king-books-ranked/ — narrative paraphrased."},
+{title:"The Colorado Kid",year:2005,author:"Stephen King",category:"Mystery",pages:184,rank:73,notes:"Collider rank #73 of 81. An almost-admirable attempt at a pure mystery/crime novel with no supernatural element — but the reviewer feels King is out of his element, deliberately withholding answers in a way that frustrates rather than unsettles. Where a book like DeLillo's Libra leaves you unmoored on purpose, here it just feels like King shrugging. Goes nowhere by design; his two later Hard Case Crime books are both better. Source: Collider, \"Every Stephen King Book, Ranked\" (Oct 2026) https://collider.com/stephen-king-books-ranked/ — narrative paraphrased."},
+{title:"Rage",year:1976,author:"Richard Bachman (Stephen King)",category:"Thriller",pages:211},
+{title:"The Long Walk",year:1978,author:"Richard Bachman (Stephen King)",category:"Dystopian",pages:384},
+{title:"Roadwork",year:1980,author:"Richard Bachman (Stephen King)",category:"Literary Fiction",pages:274},
+{title:"The Running Man",year:1981,author:"Richard Bachman (Stephen King)",category:"Dystopian",pages:219},
+{title:"The Talisman",year:1984,author:"Stephen King, Peter Straub",category:"Fantasy",pages:646},
+{title:"Cycle of the Werewolf",year:1985,author:"Stephen King",category:"Horror",pages:127},
+{title:"The Eyes of the Dragon",year:1987,author:"Stephen King",category:"Fantasy",pages:380},
+{title:"Black House",year:2001,author:"Stephen King, Peter Straub",category:"Fantasy",pages:625},
+{title:"Blaze",year:2007,author:"Richard Bachman (Stephen King)",category:"Thriller",pages:304},
+{title:"The Dark Tower: The Wind Through the Keyhole",year:2012,author:"Stephen King",category:"Fantasy",pages:336},
+{title:"Sleeping Beauties",year:2017,author:"Stephen King, Owen King",category:"Fantasy",pages:702},
+{title:"Later",year:2021,author:"Stephen King",category:"Horror",pages:248},
+{title:"Gwendy's Final Task",year:2022,author:"Stephen King, Richard Chizmar",category:"Horror",pages:416},
+{title:"Never Flinch",year:2025,author:"Stephen King",category:"Crime",pages:448},
+{title:"Night Shift",year:1978,author:"Stephen King",category:"Horror",pages:336,bookType:"short"},
+{title:"Different Seasons",year:1982,author:"Stephen King",category:"Literary Fiction",pages:508,bookType:"short"},
+{title:"Skeleton Crew",year:1985,author:"Stephen King",category:"Horror",pages:512,bookType:"short"},
+{title:"Four Past Midnight",year:1990,author:"Stephen King",category:"Horror",pages:763,bookType:"short"},
+{title:"Nightmares & Dreamscapes",year:1993,author:"Stephen King",category:"Horror",pages:816,bookType:"short"},
+{title:"Hearts in Atlantis",year:1999,author:"Stephen King",category:"Literary Fiction",pages:523,bookType:"short"},
+{title:"Everything's Eventual",year:2002,author:"Stephen King",category:"Horror",pages:459,bookType:"short"},
+{title:"Full Dark, No Stars",year:2010,author:"Stephen King",category:"Horror",pages:368,bookType:"short"},
+{title:"The Bazaar of Bad Dreams",year:2015,author:"Stephen King",category:"Horror",pages:495,bookType:"short"},
+{title:"Danse Macabre",year:1981,author:"Stephen King",category:"Non-Fiction",pages:400,bookType:"nonfiction"},
+{title:"On Writing: A Memoir of the Craft",year:2000,author:"Stephen King",category:"Memoir",pages:288,bookType:"nonfiction"},
+{title:"Faithful",year:2004,author:"Stephen King, Stewart O'Nan",category:"Sport",pages:432,bookType:"nonfiction"},
 {title:"The Dark Tower: The Gunslinger",year:1982,author:"Stephen King",category:"Fantasy",pages:224},
 {title:"The Dark Tower II: The Drawing of the Three",year:1987,author:"Stephen King",category:"Fantasy",pages:400},
 {title:"The Dark Tower III: The Waste Lands",year:1991,author:"Stephen King",category:"Fantasy",pages:512},
@@ -3712,7 +3774,7 @@ function load(){
   const c=localStorage.getItem('bt_covers');if(c)covers=JSON.parse(c);else covers={};
   const d=localStorage.getItem('bt_deleted');if(d)deletedIds=JSON.parse(d);else deletedIds=[];
 }
-function runMigrations(){books.forEach(b=>{if(b.readHistory===undefined)b.readHistory=[];if(b.readSoon===undefined)b.readSoon=false;if(b.olid===undefined)b.olid='';if(b.coverConfirmed===undefined)b.coverConfirmed=false;if(b.coverWrong===undefined)b.coverWrong=false;if(b.sortTitle===undefined)b.sortTitle=makeSortTitle(b.title);if(b.pages===undefined)b.pages=0;if(b.bookType===undefined)b.bookType='';if(b.bookClub===undefined)b.bookClub=false;if(b.bookClubNominee===undefined)b.bookClubNominee=false;if(b.audiobook===undefined)b.audiobook=false;if(b.score===undefined)b.score=''})}
+function runMigrations(){books.forEach(b=>{if(b.readHistory===undefined)b.readHistory=[];if(b.readSoon===undefined)b.readSoon=false;if(b.olid===undefined)b.olid='';if(b.coverConfirmed===undefined)b.coverConfirmed=false;if(b.coverWrong===undefined)b.coverWrong=false;if(b.sortTitle===undefined)b.sortTitle=makeSortTitle(b.title);if(b.pages===undefined)b.pages=0;if(b.bookType===undefined)b.bookType='';if(b.bookClub===undefined)b.bookClub=false;if(b.bookClubNominee===undefined)b.bookClubNominee=false;if(b.audiobook===undefined)b.audiobook=false;if(b.score===undefined)b.score='';if(b.notes===undefined)b.notes=''})}
 function updateMaxId(){maxId=books.reduce((m,b)=>Math.max(m,b.id),0)}
 function getReadCount(b){return(b.readHistory||[]).length}
 
@@ -3853,7 +3915,11 @@ function openTileModal(id){
   html+='<div style="font-size:12px;color:#aaa;margin-top:4px">'+(b.author||'Unknown')+' · '+(b.year||'')+'</div>';
   html+='</div></div>';
   html+='<div id="detailsBox" style="display:none;background:#0f0f0f;border-radius:6px;padding:10px;margin:10px 0;font-size:12px;color:#ccc;line-height:1.5"></div>';
-  html+='<div class="metadata-card"><div><strong>Author:</strong> '+(b.author||'N/A')+'</div><div><strong>Year:</strong> '+(b.year||'N/A')+'</div><div><strong>Pages:</strong> '+(b.pages||'N/A')+'</div><div><strong>Genre:</strong> '+(b.category||'N/A')+'</div><div><strong>Notes:</strong> '+(b.notes||'—')+'</div></div>';
+  html+='<div class="metadata-card"><div><strong>Author:</strong> '+(b.author||'N/A')+'</div><div><strong>Year:</strong> '+(b.year||'N/A')+'</div><div><strong>Pages:</strong> '+(b.pages||'N/A')+'</div><div><strong>Genre:</strong> '+(b.category||'N/A')+'</div>'+(b.rank!==undefined?'<div><strong>Collider rank:</strong> #'+b.rank+' of 81</div>':'')+'</div>';
+  // Notes / narrative (linkified so citation URLs are clickable)
+  const notesText=b.notes||'';
+  const notesHtml=notesText?notesText.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/(https?:\\/\\/[^\\s]+)/g,'<a href="$1" target="_blank" rel="noopener" style="color:#e67e22">$1</a>'):'';
+  html+='<label>Notes</label><div style="background:#0f0f0f;border-radius:6px;padding:10px;font-size:12px;color:#ccc;line-height:1.55;white-space:pre-wrap">'+(notesHtml||'—')+'</div>';
   // GOAT tier
   html+='<label>GOAT Tier</label><div class="tier-btns">';
   [3,2,1,0].forEach(t=>{html+='<button class="'+(b.goatTier===t?'active':'')+'" onclick="setGoatTier('+b.id+','+t+')">'+(t===0?'Not GOAT':'★'.repeat(t)+' GOAT')+'</button>'});
@@ -4268,17 +4334,24 @@ function mergeNewList(){
       if(item.bookType)nb.bookType=item.bookType;
       if(item.bookClub)nb.bookClub=true;
       if(item.bookClubNominee)nb.bookClubNominee=true;
+      if(item.notes)nb.notes=item.notes;
+      if(item.rank!==undefined)nb.rank=item.rank;
       books.push(nb);existing.add(norm);
     }
   });
   // Ensure bookType is correctly set from NEWLIST for all items
-  const typeMap={},clubMap={};
-  NEWLIST.forEach(i=>{if(i.bookType)typeMap[normalize(i.title)]=i.bookType;if(i.bookClub)clubMap[normalize(i.title)]=true});
+  const typeMap={},clubMap={},notesMap={},rankMap={};
+  NEWLIST.forEach(i=>{if(i.bookType)typeMap[normalize(i.title)]=i.bookType;if(i.bookClub)clubMap[normalize(i.title)]=true;if(i.notes)notesMap[normalize(i.title)]=i.notes;if(i.rank!==undefined)rankMap[normalize(i.title)]=i.rank});
   books.forEach(b=>{
     const correctType=typeMap[normalize(b.title)];
     if(correctType)b.bookType=correctType;
     else if(!b.bookType)b.bookType='novel';
     if(clubMap[normalize(b.title)])b.bookClub=true;
+    // Backfill cited narrative/rank onto existing books (e.g. The Shining, It, Misery already seeded) without overwriting any user-written notes
+    const seedNotes=notesMap[normalize(b.title)];
+    if(seedNotes&&!b.notes)b.notes=seedNotes;
+    const seedRank=rankMap[normalize(b.title)];
+    if(seedRank!==undefined&&b.rank===undefined)b.rank=seedRank;
   });
 }
 function init(){
@@ -4671,9 +4744,9 @@ function confirmBulk(){
 // Close modals on overlay click
 document.addEventListener('click',function(e){if(e.target.classList.contains('modal-overlay')){e.target.style.display='none';renderGrid()}});
 
-// BGG XML API
+// BGG XML API - route through AWS proxy endpoint
 function getBggUrl(path){
-  return 'https://corsproxy.io/?https://boardgamegeek.com/xmlapi2' + path;
+  return 'https://ditw97qgs2.execute-api.eu-north-1.amazonaws.com/proxy?url=' + encodeURIComponent('https://boardgamegeek.com/xmlapi2' + path);
 }
 
 // Pre-mapped cover images (Wikipedia/open sources - no CORS restrictions)

@@ -1,2 +1,6 @@
 desktop-app/node_modules/
 desktop-app/*.png
+
+# Local-only: spent one-off patch scripts and backups (kept on disk, not deployed/committed)
+_archive/
+media-tracker.backup-*.html
