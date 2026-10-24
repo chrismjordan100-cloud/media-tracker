@@ -464,7 +464,7 @@ const FULL_SEED = [
 const NEWLIST = [
 // Friday the 13th series (originals + remake) - added as unwatched.
 // NOTE: the two bare "Friday the 13th" films (1980 + 2009) are handled by
-// fixFridayThe13th() so their year lives in the `year` field (not the title),
+// fixFridayThe13th() so their year lives in the 'year' field (not the title),
 // which lets TMDB cover lookup work. Do NOT add bare "Friday the 13th" here.
 "Friday the 13th Part 2","Friday the 13th Part III","Friday the 13th: The Final Chapter","Friday the 13th: A New Beginning","Friday the 13th Part VI: Jason Lives","Friday the 13th Part VII: The New Blood","Friday the 13th Part VIII: Jason Takes Manhattan","Jason Goes to Hell: The Final Friday","Jason X","Freddy vs. Jason",
 "The Truman Show","Forrest Gump","The Green Mile","Se7en","Memento","American Beauty","Taxi Driver","Apocalypse Now","A Clockwork Orange","Full Metal Jacket",
@@ -2055,7 +2055,7 @@ function usToUk(cert){
 // One-time fix: the two "Friday the 13th" films (1980 original + 2009 remake)
 // were initially seeded with the year baked into the title ("Friday the 13th (1980)"),
 // which breaks TMDB cover lookup. This normalises them to a clean title with the
-// year in the proper `year` field, and ensures both exist. Runs once (guarded).
+// year in the proper 'year' field, and ensures both exist. Runs once (guarded).
 function fixFridayThe13th(){
   if(localStorage.getItem('ft_f13_fixed')==='1')return;
   const variants=[{bad:'Friday the 13th (1980)',year:1980},{bad:'Friday the 13th (2009)',year:2009}];
