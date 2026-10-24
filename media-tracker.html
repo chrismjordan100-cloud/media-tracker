@@ -462,8 +462,11 @@ const FULL_SEED = [
 ];
 
 const NEWLIST = [
-// Friday the 13th series (originals + remake) - added as unwatched
-"Friday the 13th (1980)","Friday the 13th Part 2","Friday the 13th Part III","Friday the 13th: The Final Chapter","Friday the 13th: A New Beginning","Friday the 13th Part VI: Jason Lives","Friday the 13th Part VII: The New Blood","Friday the 13th Part VIII: Jason Takes Manhattan","Jason Goes to Hell: The Final Friday","Jason X","Freddy vs. Jason","Friday the 13th (2009)",
+// Friday the 13th series (originals + remake) - added as unwatched.
+// NOTE: the two bare "Friday the 13th" films (1980 + 2009) are handled by
+// fixFridayThe13th() so their year lives in the `year` field (not the title),
+// which lets TMDB cover lookup work. Do NOT add bare "Friday the 13th" here.
+"Friday the 13th Part 2","Friday the 13th Part III","Friday the 13th: The Final Chapter","Friday the 13th: A New Beginning","Friday the 13th Part VI: Jason Lives","Friday the 13th Part VII: The New Blood","Friday the 13th Part VIII: Jason Takes Manhattan","Jason Goes to Hell: The Final Friday","Jason X","Freddy vs. Jason",
 "The Truman Show","Forrest Gump","The Green Mile","Se7en","Memento","American Beauty","Taxi Driver","Apocalypse Now","A Clockwork Orange","Full Metal Jacket",
 "2001: A Space Odyssey","The Prestige","Django Unchained","Inglourious Basterds","Kill Bill: Volume 1","Reservoir Dogs","City of God","Oldboy","Pan's Labyrinth","Amelie",
 "Spirited Away","Princess Mononoke","Akira","Ghost in the Shell","The Thing","Halloween","A Nightmare on Elm Street","The Exorcist","Hereditary","Midsommar",
@@ -2049,12 +2052,42 @@ function usToUk(cert){
   return map[cert]||cert;
 }
 
+// One-time fix: the two "Friday the 13th" films (1980 original + 2009 remake)
+// were initially seeded with the year baked into the title ("Friday the 13th (1980)"),
+// which breaks TMDB cover lookup. This normalises them to a clean title with the
+// year in the proper `year` field, and ensures both exist. Runs once (guarded).
+function fixFridayThe13th(){
+  if(localStorage.getItem('ft_f13_fixed')==='1')return;
+  const variants=[{bad:'Friday the 13th (1980)',year:1980},{bad:'Friday the 13th (2009)',year:2009}];
+  variants.forEach(v=>{
+    const existingBad=films.find(f=>f.title===v.bad);
+    if(existingBad){
+      existingBad.title='Friday the 13th';
+      existingBad.year=v.year;
+      existingBad.sortTitle=makeSortTitle('Friday the 13th');
+      existingBad.tmdbId=null;existingBad.posterWrong=false;existingBad.posterConfirmed=false;
+      if(posters[existingBad.id])delete posters[existingBad.id];
+    }
+    const haveThisYear=films.some(f=>f.title==='Friday the 13th'&&f.year===v.year);
+    const deletedBad=(deletedTitles||[]).includes(normalize(v.bad));
+    if(!haveThisYear&&!deletedBad){
+      maxId++;
+      const nf=makeFilm('Friday the 13th',maxId);
+      nf.year=v.year;
+      nf.sortTitle=makeSortTitle('Friday the 13th');
+      films.push(nf);
+    }
+  });
+  localStorage.setItem('ft_f13_fixed','1');
+}
+
 // Startup
 function init(){
   load();
   runMigrations();
   updateMaxId();
   mergeNewList();
+  fixFridayThe13th();
   save();
   populateGenreFilter();
   populateDecadeFilter();
