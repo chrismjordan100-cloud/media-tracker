@@ -10,6 +10,8 @@ const USER='chris';
 function log(msg){document.getElementById('log').textContent+=msg+'\n'}
 
 async function clearCloud(){
+  // This deletes EVERY Media Tracker item in the cloud. Require a typed confirmation.
+  if(prompt('This permanently deletes ALL Media Tracker data in the cloud.\n\nType DELETE to continue.')!=='DELETE'){log('Cancelled.');return}
   log('Loading current cloud data...');
   const resp=await fetch(API+'/load?userId='+USER);
   const data=await resp.json();
@@ -22,6 +24,8 @@ async function clearCloud(){
 }
 
 async function rePush(){
+  // If this browser was wiped it holds only starter data, which would overwrite the cloud.
+  if(!confirm('Overwrite the cloud copy with whatever is in THIS browser right now?\n\nIf your data has gone missing here, press Cancel. Use the main app\'s ☁↓ instead.')){log('Cancelled.');return}
   log('Pushing localStorage to cloud...');
   let count=0;
   for(let i=0;i<localStorage.length;i++){

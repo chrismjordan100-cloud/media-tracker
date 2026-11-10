@@ -23,4 +23,8 @@ jobs:
       # HTML is uploaded separately with no-cache so browsers and CloudFront
       # always revalidate and pick up new versions straight after a deploy.
       - name: Deploy HTML (no-cache)
-        run: aws s3 cp . s3://media-tracker-app-eggnog-915238109618-eu-north-1-an --recursive --exclude "*" --include "*.html" --exclude ".git/*" --exclude ".github/*" --exclude "desktop-app/*" --exclude "_archive/*" --cache-control "no-cache, must-revalidate" --content-type "text/html; charset=utf-8"
+        run: aws s3 cp . s3://media-tracker-app-eggnog-915238109618-eu-north-1-an --recursive --exclude "*" --include "*.html" --exclude ".git/*" --exclude ".github/*" --exclude "desktop-app/*" --exclude "_archive/*" --exclude "clear-cloud.html" --cache-control "no-cache, must-revalidate" --content-type "text/html; charset=utf-8"
+      # clear-cloud.html can wipe ALL cloud data and the API has no login, so it is
+      # a local-only tool: never deployed, and any previously deployed copy is removed.
+      - name: Remove local-only tools from the live site
+        run: aws s3 rm s3://media-tracker-app-eggnog-915238109618-eu-north-1-an/clear-cloud.html
