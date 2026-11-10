@@ -13,8 +13,12 @@ function createWindow() {
     }
   });
 
-  // Load the AWS hosted version (cache-bust with timestamp)
-  win.loadURL('http://media-tracker-app-eggnog-915238109618-eu-north-1-an.s3-website.eu-north-1.amazonaws.com?v=' + Date.now());
+  // Load the CloudFront (HTTPS) hosted version. The direct S3 website URL now returns 403.
+  // Clear Electron's HTTP cache first so a new deploy always shows on next launch
+  // (localStorage is separate and is NOT touched by clearCache).
+  win.webContents.session.clearCache().finally(() => {
+    win.loadURL('https://d21se3p58mjg34.cloudfront.net/media-tracker.html');
+  });
 }
 
 app.whenReady().then(createWindow);
