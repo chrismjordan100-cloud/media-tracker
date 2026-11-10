@@ -479,6 +479,24 @@ const NEWLIST = [
 "The Banshees of Inisherin","Three Billboards Outside Ebbing Missouri","In Bruges","Seven Psychopaths","The Grand Budapest Hotel","The French Dispatch","Isle of Dogs","Fantastic Mr. Fox","The Royal Tenenbaums","Rushmore"
 ];
 
+// Arnold Schwarzenegger filmography (acting roles incl. cameos + Pumping Iron).
+// Has years so TMDB cover lookup matches the right film (Eraser, Twins, Junior, Cobra-style short titles).
+// Added as unwatched via mergeArnie(); skipped if already present or previously deleted.
+const ARNIE = [
+{t:"Hercules in New York",y:1970,c:"Comedy"},{t:"The Long Goodbye",y:1973,c:"Crime"},{t:"Stay Hungry",y:1976,c:"Drama"},{t:"Pumping Iron",y:1977,c:"Documentary"},
+{t:"The Villain",y:1979,c:"Comedy"},{t:"Scavenger Hunt",y:1979,c:"Comedy"},{t:"Conan the Barbarian",y:1982,c:"Action"},{t:"Conan the Destroyer",y:1984,c:"Action"},
+{t:"The Terminator",y:1984,c:"Sci-Fi"},{t:"Commando",y:1985,c:"Action"},{t:"Red Sonja",y:1985,c:"Action"},{t:"Raw Deal",y:1986,c:"Action"},
+{t:"Predator",y:1987,c:"Action"},{t:"The Running Man",y:1987,c:"Sci-Fi"},{t:"Red Heat",y:1988,c:"Action"},{t:"Twins",y:1988,c:"Comedy"},
+{t:"Total Recall",y:1990,c:"Sci-Fi"},{t:"Kindergarten Cop",y:1990,c:"Comedy"},{t:"Terminator 2: Judgment Day",y:1991,c:"Sci-Fi"},{t:"Last Action Hero",y:1993,c:"Action"},
+{t:"True Lies",y:1994,c:"Action"},{t:"Junior",y:1994,c:"Comedy"},{t:"Eraser",y:1996,c:"Action"},{t:"Jingle All the Way",y:1996,c:"Comedy"},
+{t:"Batman & Robin",y:1997,c:"Superhero"},{t:"End of Days",y:1999,c:"Horror"},{t:"The 6th Day",y:2000,c:"Sci-Fi"},{t:"Collateral Damage",y:2002,c:"Action"},
+{t:"The Rundown",y:2003,c:"Action"},{t:"Terminator 3: Rise of the Machines",y:2003,c:"Sci-Fi"},{t:"Around the World in 80 Days",y:2004,c:"Comedy"},{t:"The Kid & I",y:2005,c:"Comedy"},
+{t:"The Expendables",y:2010,c:"Action"},{t:"The Expendables 2",y:2012,c:"Action"},{t:"The Last Stand",y:2013,c:"Action"},{t:"Escape Plan",y:2013,c:"Thriller"},
+{t:"The Expendables 3",y:2014,c:"Action"},{t:"Sabotage",y:2014,c:"Action"},{t:"Maggie",y:2015,c:"Horror"},{t:"Terminator Genisys",y:2015,c:"Sci-Fi"},
+{t:"Aftermath",y:2017,c:"Drama"},{t:"Killing Gunther",y:2017,c:"Comedy"},{t:"Terminator: Dark Fate",y:2019,c:"Sci-Fi"},
+{t:"FUBAR",y:2023,c:"Action",m:"tv"}
+];
+
 let films = [];
 let posters = {};
 let deletedIds = [];
@@ -544,6 +562,21 @@ function mergeNewList(){
       films.push(makeFilm(title,maxId));
       existing.add(norm);
     }
+  });
+}
+
+function mergeArnie(){
+  const existing=new Set(films.map(f=>normalize(f.title)));
+  const deleted=new Set(deletedTitles);
+  ARNIE.forEach(a=>{
+    const norm=normalize(a.t);
+    if(existing.has(norm)||deleted.has(norm))return;
+    maxId++;
+    const nf=makeFilm(a.t,maxId);
+    nf.year=a.y;nf.category=a.c;nf.director='';
+    if(a.m)nf.mediaType=a.m;
+    films.push(nf);
+    existing.add(norm);
   });
 }
 
@@ -2087,6 +2120,7 @@ function init(){
   runMigrations();
   updateMaxId();
   mergeNewList();
+  mergeArnie();
   fixFridayThe13th();
   save();
   populateGenreFilter();
