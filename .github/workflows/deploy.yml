@@ -19,4 +19,8 @@ jobs:
           aws-region: eu-north-1
 
       - name: Deploy to S3
-        run: aws s3 sync . s3://media-tracker-app-eggnog-915238109618-eu-north-1-an --exclude ".git/*" --exclude ".github/*" --exclude "desktop-app/*" --exclude ".gitignore" --exclude "_archive/*" --exclude "*.md" --exclude "*.docx"
+        run: aws s3 sync . s3://media-tracker-app-eggnog-915238109618-eu-north-1-an --exclude ".git/*" --exclude ".github/*" --exclude "desktop-app/*" --exclude ".gitignore" --exclude "_archive/*" --exclude "*.md" --exclude "*.docx" --exclude "*.html"
+      # HTML is uploaded separately with no-cache so browsers and CloudFront
+      # always revalidate and pick up new versions straight after a deploy.
+      - name: Deploy HTML (no-cache)
+        run: aws s3 cp . s3://media-tracker-app-eggnog-915238109618-eu-north-1-an --recursive --exclude "*" --include "*.html" --exclude ".git/*" --exclude ".github/*" --exclude "desktop-app/*" --exclude "_archive/*" --cache-control "no-cache, must-revalidate" --content-type "text/html; charset=utf-8"
